@@ -30,3 +30,11 @@
 *.exe
 *.out
 *.app
+
+# Build Directories
+x64\*
+Debug\*
+Release\*
+PuzzelMaster\x64\*
+PuzzelMaster\Debug\*
+PuzzelMaster\Release\*
