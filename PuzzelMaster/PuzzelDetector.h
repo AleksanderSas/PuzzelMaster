@@ -16,8 +16,8 @@ public:
 	PuzzelDetector(Mat& input);
 	vector<PuzzelRectange> DetectPuzzels();
 
-	int cannEdgeThresh = 50;
-	int dilation_size = 1;
+	int cannEdgeThresh = 70;
+	int dilation_size = 2;
 
 private: 
 	Mat ComputeEdgeMap(vector<vector<Point>>& contours);
@@ -28,7 +28,7 @@ private:
 	Mat contourDrawing;
 	KMeans knn;
 
-#if 1
+#if 0
 
 #define MIN_SQUARE_DISTANCE  1600
 #define INIT_GRID_DENSITY 10

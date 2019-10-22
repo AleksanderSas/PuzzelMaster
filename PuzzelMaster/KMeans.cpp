@@ -1,6 +1,7 @@
 #include "KMeans.h"
 #include <set>
 #include "math.h"
+#include "IntrestingArea.h"
 
 KMeans::KMeans(int heigth, int width, int MIN_SQUARE_DISTANCE, int INIT_GRID_DENSITY)
 {
@@ -57,7 +58,7 @@ inline int FindNearestCentre(cv::Point p, vector<Centre*> centres)
 }
 
 
-int KMeans::Pass(vector<vector<cv::Point> > &contours)
+int KMeans::Pass(vector<vector<cv::Point> > *contours)
 {
 	for (vector<Centre*>::iterator centre = centres.begin(); centre != centres.end(); centre++)
 	{
@@ -66,7 +67,7 @@ int KMeans::Pass(vector<vector<cv::Point> > &contours)
 	}
 
 	int* scores = new int[centres.size()];
-	for (vector<vector<cv::Point>>::iterator contour = contours.begin(); contour != contours.end(); contour++)
+	for (vector<vector<cv::Point>>::iterator contour = contours->begin(); contour != contours->end(); contour++)
 	{
 		memset(scores, 0, sizeof(int) * centres.size());
 
@@ -167,114 +168,17 @@ int KMeans::Pass(vector<vector<cv::Point> > &contours)
 	return change;
 }
 
-int KMeans::ComputeCentres(vector<vector<cv::Point> > &contours)
-{	
-	
-	return Pass(contours);
-	
-}
-
-void drawAxis(Mat& img, Point p, Point q, Scalar colour, const float scale = 0.2)
-{
-	double angle;
-	double hypotenuse;
-	angle = atan2((double)p.y - q.y, (double)p.x - q.x); // angle in radians
-	hypotenuse = sqrt((double)(p.y - q.y) * (p.y - q.y) + (p.x - q.x) * (p.x - q.x));
-	//    double degrees = angle * 180 / CV_PI; // convert radians to degrees (0-180 range)
-	//    cout << "Degrees: " << abs(degrees - 180) << endl; // angle in 0-360 degrees range
-		// Here we lengthen the arrow by a factor of scale
-	q.x = (int)(p.x - scale * hypotenuse * cos(angle));
-	q.y = (int)(p.y - scale * hypotenuse * sin(angle));
-	line(img, p, q, colour, 1, LINE_AA);
-	// create the arrow hooks
-	p.x = (int)(q.x + 9 * cos(angle + CV_PI / 4));
-	p.y = (int)(q.y + 9 * sin(angle + CV_PI / 4));
-	line(img, p, q, colour, 1, LINE_AA);
-	p.x = (int)(q.x + 9 * cos(angle - CV_PI / 4));
-	p.y = (int)(q.y + 9 * sin(angle - CV_PI / 4));
-	line(img, p, q, colour, 1, LINE_AA);
-}
-
-
-double getOrientation(vector<vector<cv::Point>*> &pts, Mat& img)
-{
-
-	int totalSize = 0;
-	for (vector<vector<cv::Point>*>::iterator contour = pts.begin(); contour != pts.end(); contour++)
-	{
-		totalSize += (*contour)->size();
-	}
-	//Construct a buffer used by the pca analysis
-	int sz = static_cast<int>(totalSize);
-	Mat data_pts = Mat(sz, 2, CV_64FC1);
-	int offset = 0;
-	for (vector<vector<cv::Point>*>::iterator contour = pts.begin(); contour != pts.end(); contour++)
-	{
-		for (int i = 0; i < (*contour)->size(); ++i)
-		{
-			data_pts.at<double>(offset + i, 0) = (*contour)->at(i).x;
-			data_pts.at<double>(offset + i, 1) = (*contour)->at(i).y;
-		}
-		offset += (*contour)->size();
-	}
-	//Perform PCA analysis
-	PCA pca_analysis(data_pts, Mat(), PCA::DATA_AS_ROW);
-	//Store the center of the object
-	Point cntr = Point(static_cast<int>(pca_analysis.mean.at<double>(0, 0)),
-		static_cast<int>(pca_analysis.mean.at<double>(0, 1)));
-	//Store the eigenvalues and eigenvectors
-	vector<Point2d> eigen_vecs(2);
-	vector<double> eigen_val(2);
-	for (int i = 0; i < 2; ++i)
-	{
-		eigen_vecs[i] = Point2d(pca_analysis.eigenvectors.at<double>(i, 0),
-			pca_analysis.eigenvectors.at<double>(i, 1));
-		eigen_val[i] = pca_analysis.eigenvalues.at<double>(i);
-	}
-	// Draw the principal components
-	circle(img, cntr, 3, Scalar(255, 0, 255), 2);
-	Point p1 = cntr + 0.02 * Point(static_cast<int>(eigen_vecs[0].x * eigen_val[0]), static_cast<int>(eigen_vecs[0].y * eigen_val[0]));
-	Point p2 = cntr - 0.02 * Point(static_cast<int>(eigen_vecs[1].x * eigen_val[1]), static_cast<int>(eigen_vecs[1].y * eigen_val[1]));
-	drawAxis(img, cntr, p1, Scalar(0, 255, 0), 1);
-	drawAxis(img, cntr, p2, Scalar(255, 255, 0), 5);
-	double angle = atan2(eigen_vecs[0].y, eigen_vecs[0].x); // orientation in radians
-	return angle;
-}
-
-void KMeans::DrawEigenVectors(Mat& img)
-{
-	for (vector<Centre*>::iterator centre = centres.begin(); centre != centres.end(); centre++)
-	{
-		
-		getOrientation((*centre)->CapturedContours, img);
-	}
-}
-
-unique_ptr< vector<cv::Point>> MergeContours(vector<vector<cv::Point>*> &contours)
+unique_ptr< vector<cv::Point>> MergeContours(vector<vector<cv::Point>*> *contours)
 {
 	unique_ptr< vector<cv::Point>> ptr(new vector<cv::Point>());
-	for (vector<vector<cv::Point>*>::iterator contour = contours.begin(); contour != contours.end(); contour++)
+	for (vector<vector<cv::Point>*>::iterator contour = contours->begin(); contour != contours->end(); contour++)
 	{
 		ptr->insert(ptr->end(), (*contour)->begin(), (*contour)->end());
 	}
 	return ptr;
 }
 
-void KMeans::drawApprovedContours(Mat& img)
-{
-	for (vector<Centre*>::iterator centre = centres.begin(); centre != centres.end(); centre++)
-	{
-		vector<vector<cv::Point>*> buffer;
-		//GetCloseContours(*centre, buffer);
-		for (int k = 0; k < buffer.size(); k++)
-		{
-			//drawContours(img, buffer, k, Scalar(50, 50, 250), 1, LINE_8, hierarchy, 0);
-			//contours[i].push_back(contours[i][0]);
-		}
-	}
-}
-
-void GetCloseContours(Centre* centre, vector<vector<cv::Point>*> &buffer)
+void GetCloseContours(Centre* centre, vector<vector<cv::Point>*> *buffer)
 {
 	int removed = 0;
 	int count = 0;
@@ -289,9 +193,6 @@ void GetCloseContours(Centre* centre, vector<vector<cv::Point>*> &buffer)
 		count += contour->size();
 		for(vector<cv::Point>::iterator point = contour->begin(); point != contour->end(); point++)
 		{
-			/*int dx = point->x - centre->Point.x;
-			int dy = point->y - centre->Point.y;*/
-
 			x += point->x;
 			y += point->y;
 		}
@@ -319,7 +220,7 @@ void GetCloseContours(Centre* centre, vector<vector<cv::Point>*> &buffer)
 	{
 		if (dists[i] < dist + var || centre->CapturedContours.size() < 7 )
 		{
-			buffer.push_back(centre->CapturedContours[i]);
+			buffer->push_back(centre->CapturedContours[i]);
 		}
 		else
 		{
@@ -333,9 +234,9 @@ void KMeans::DrawBoxes(Mat& img)
 	for (vector<Centre*>::iterator centre = centres.begin(); centre != centres.end(); centre++)
 	{
 		vector<vector<cv::Point>*> buffer;
-		GetCloseContours(*centre, buffer);
+		GetCloseContours(*centre, &buffer);
 
-		auto mergedContour = MergeContours(buffer);
+		auto mergedContour = MergeContours(&buffer);
 		//auto box = boundingRect(*mergedContour);
 		auto box = minAreaRect(*mergedContour);
 		Scalar color = Scalar(80, 100, 120);
@@ -412,8 +313,6 @@ float IsMoreOrLessRectange(PuzzelRectange &candidate, Mat& xDeriv, Mat& yDeriv)
 
 	if (measure > 0.1)
 	{
-		//measure *= measure2;
-
 		Point2f v1 = GetVector(candidate.left, candidate.upper);
 		Point2f v2 = GetVector(candidate.upper, candidate.right);
 
@@ -444,41 +343,14 @@ void UpdateHitMetric(Mat& edgeMap, int xPos, int yPos, int& hit, int& miss)
 	}
 }
 
-void ComputeEdgeHits(Mat& edgeMap, Point2f p1, Point2f p2, int& hit, int& miss)
-{
-	int x = p1.x - p2.x;
-	int y = p1.y - p2.y;
-
-	if (abs(x) > abs(y))
-	{
-		if (p1.x > p2.x) swap(p1, p2);
-		double dy = 1.0 * (p2.y - p1.y) / (p2.x - p1.x);
-		double yPos = p1.y;
-		for (int xPos = p1.x; xPos < p2.x; xPos++)
-		{
-			UpdateHitMetric(edgeMap, xPos, yPos, hit, miss);
-			yPos += dy;
-		}
-	}
-	else
-	{
-		if (p1.y > p2.y) swap(p1, p2);
-		double dx = 1.0 * (p2.x - p1.x) / (p2.y - p1.y);
-		double xPos = p1.x;
-		for (int yPos = p1.y; yPos < p2.y; yPos++)
-		{
-			UpdateHitMetric(edgeMap, xPos, yPos, hit, miss);
-			xPos += dx;
-		}
-	}
-}
-
 void ComputeEdgeHits(Mat& edgeMap, PuzzelRectange &puzzel, int& hit, int& miss)
 {
-	ComputeEdgeHits(edgeMap, puzzel.left, puzzel.lower, hit, miss);
-	ComputeEdgeHits(edgeMap, puzzel.left, puzzel.upper, hit, miss);
-	ComputeEdgeHits(edgeMap, puzzel.right, puzzel.lower, hit, miss);
-	ComputeEdgeHits(edgeMap, puzzel.right, puzzel.upper, hit, miss);
+	auto counter = [&](int x, int y) {UpdateHitMetric(edgeMap, x, y, hit, miss); return true; };
+
+	ProcessLine(puzzel.left, puzzel.lower, counter);
+	ProcessLine(puzzel.left, puzzel.upper, counter);
+	ProcessLine(puzzel.right, puzzel.lower, counter);
+	ProcessLine(puzzel.right, puzzel.upper, counter);
 }
 
 vector<PuzzelRectange>* KMeans::FindBestRectange(vector<Point2f>& corners, Mat &xDeriv, Mat& yDeriv, Mat &edgeMap)
@@ -489,8 +361,7 @@ vector<PuzzelRectange>* KMeans::FindBestRectange(vector<Point2f>& corners, Mat &
 	sort(vSorted.begin(), vSorted.end(), vComparer);
 	sort(hSorted.begin(), hSorted.end(), hComparer);
 
-	PuzzelRectange candidate;
-	PuzzelRectange best;
+	int counter = 0;
 	vector<PuzzelRectange>* rects = new vector<PuzzelRectange>();
 
 	for (vector<Point2f>::iterator left = hSorted.begin(); left != hSorted.end(); left++)
@@ -514,10 +385,7 @@ vector<PuzzelRectange>* KMeans::FindBestRectange(vector<Point2f>& corners, Mat &
 					{
 						continue;
 					}
-					candidate.left = *left;
-					candidate.right = *right;
-					candidate.lower = *lower;
-					candidate.upper = *upper;
+					PuzzelRectange candidate(*left, *right, *lower, *upper, counter++);
 
 					double r = IsMoreOrLessRectange(candidate, xDeriv, yDeriv);
 					if (r > 0.0)
@@ -571,18 +439,46 @@ Mat Extract(RotatedRect rect, Mat &src, int extendBySize = 0)
 	return cropped;
 }
 
-vector<pair<Mat, Mat>> KMeans::GetPuzzels(Mat &img, Mat& edgeMap)
+vector<IntrestingArea> KMeans::GetPuzzels(Mat &img, Mat& edgeMap)
 {
-	vector<pair<Mat, Mat>> puzzelAreas;
+	vector<IntrestingArea> puzzelAreas;
 	for (vector<Centre*>::iterator centre = centres.begin(); centre != centres.end(); centre++)
 	{
-		vector<vector<cv::Point>*> buffer;
+		vector<vector<cv::Point>*> *buffer = new vector<vector<cv::Point>*>();
 		GetCloseContours(*centre, buffer);
 
 		auto mergedContour = MergeContours(buffer);
 		//auto box = boundingRect(*mergedContour);
 		auto box = minAreaRect(*mergedContour);
-		puzzelAreas.push_back(pair<Mat, Mat>(Extract(box, img, 30), Extract(box, edgeMap, 30)));
+		puzzelAreas.push_back(IntrestingArea(Extract(box, img, 5), Extract(box, edgeMap, 5), buffer));
 	}
+
 	return puzzelAreas;
+}
+
+void ProcessLine(Point2i p1, Point2i p2, function<bool(int x, int y)> processor)
+{
+	int x = p1.x - p2.x;
+	int y = p1.y - p2.y;
+
+	if (abs(x) > abs(y))
+	{
+		int xStep = p1.x < p2.x ? 1 : -1;
+		double dy = 1.0 * (p2.y - p1.y) / (p2.x - p1.x) * xStep;
+		double yPos = p1.y;
+		for (int xPos = p1.x; xPos != p2.x && processor(xPos, yPos); xPos += xStep)
+		{
+			yPos += dy;
+		}
+	}
+	else
+	{
+		int yStep = p1.y < p2.y ? 1 : -1;
+		double dx = 1.0 * (p2.x - p1.x) / (p2.y - p1.y) * yStep;
+		double xPos = p1.x;
+		for (int yPos = p1.y; yPos != p2.y && processor(xPos, yPos); yPos += yStep)
+		{
+			xPos += dx;
+		}
+	}
 }

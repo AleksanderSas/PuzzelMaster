@@ -38,3 +38,6 @@ Release\*
 PuzzelMaster\x64\*
 PuzzelMaster\Debug\*
 PuzzelMaster\Release\*
+.vs/*
+*.vcxproj.filters
+*.vcxproj.user

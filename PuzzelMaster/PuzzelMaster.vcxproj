@@ -156,16 +156,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="IntrestingArea.cpp" />
     <ClCompile Include="KMeans.cpp" />
+    <ClCompile Include="PuzzelRectange.cpp" />
     <ClCompile Include="PuzzelDetector.cpp" />
     <ClCompile Include="PuzzelMaster.cpp" />
+    <ClCompile Include="PuzzelSolver.cpp" />
     <ClCompile Include="Test.cpp" />
-    <ClCompile Include="Test2.cpp" />
+    <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="IntrestingArea.h" />
     <ClInclude Include="KMeans.h" />
+    <ClInclude Include="PuzzelRectange.h" />
     <ClInclude Include="PuzzelDetector.h" />
+    <ClInclude Include="PuzzelSolver.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="Utils.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="PuzzelMaster.rc" />
