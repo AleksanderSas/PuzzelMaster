@@ -120,11 +120,10 @@ void thresh_callback(int, void*)
 		
 	}
 
-	//puzzels[0].FindNeighbour(puzzels, 0, "w0");
-	puzzels[0].FindNeighbour(puzzels, 1, "w1");
-	//puzzels[0].FindNeighbour(puzzels, 2, "w2");
-	//puzzels[0].FindNeighbour(puzzels, 3, "w3");
-
+	puzzels[3].FindNeighbour(puzzels, 0, "w0");
+	puzzels[3].FindNeighbour(puzzels, 1, "w1");
+	puzzels[3].FindNeighbour(puzzels, 2, "w2");
+	puzzels[3].FindNeighbour(puzzels, 3, "w3");
 	//imshow("source winner", puzzels[1].puzzelArea);
 
 	imshow("mosaic", ComposePuzzels(puzzels));

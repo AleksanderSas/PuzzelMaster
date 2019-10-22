@@ -450,7 +450,8 @@ vector<IntrestingArea> KMeans::GetPuzzels(Mat &img, Mat& edgeMap)
 		auto mergedContour = MergeContours(buffer);
 		//auto box = boundingRect(*mergedContour);
 		auto box = minAreaRect(*mergedContour);
-		puzzelAreas.push_back(IntrestingArea(Extract(box, img, 5), Extract(box, edgeMap, 5), buffer));
+		int padding = 10;
+		puzzelAreas.push_back(IntrestingArea(Extract(box, img, padding), Extract(box, edgeMap, padding), buffer));
 	}
 
 	return puzzelAreas;

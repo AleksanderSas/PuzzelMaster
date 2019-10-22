@@ -40,15 +40,14 @@ void ComputeFeatureVector(Mat &m, Point2f& startCorner, Point2f& endCorner, Poin
 	float factor = 0.95;
 	Point2f start = LinearComb(startCorner, startBeckSide, factor);
 	Point2f end = LinearComb(endCorner, endBeckSide, factor);
+	e->len = hypot(start.x - end.x, start.y - end.y);;
 
-	int len = hypot(start.x - end.x, start.y - end.y);
-	e->len = len;
+	int start2jointDist = hypot(e->joint[0] - start.x, e->joint[1] - start.y);
+	int joint2endDist = hypot(e->joint[0] - end.x, e->joint[1] - end.y);
+	int dist = start2jointDist + joint2endDist;
 
-	int start2jointDist = hypot(e->joint[0] - start.x, e->joint[1] - start.y) - e->joint[2];
-	int joint2endDist = hypot(e->joint[0] - end.x, e->joint[1] - end.y) - e->joint[2];
-
-	Point2f start2joint = LinearComb(start, end, 1.0 * start2jointDist / len);
-	Point2f joint2end = LinearComb(end, start, 1.0 * joint2endDist / len);
+	Point2f start2joint = LinearComb(start, end, 1.0 * (dist - start2jointDist + e->joint[2] )/ dist);
+	Point2f joint2end = LinearComb(end, start, 1.0 * (dist - joint2endDist + e->joint[2]) / dist);
 
 	ProcessLine(start, start2joint, [&](int x, int y) {e->colors1.push_back(m.at<Vec3b>(y, x)); return true; });
 	ProcessLine(joint2end, end, [&](int x, int y) {e->colors2.push_back(m.at<Vec3b>(y, x)); return true; });
@@ -192,8 +191,7 @@ float feature(vector<Vec3b>& v1, vector<Vec3b>& v2)
 	vector<Vec3b>::iterator it1 = v1.begin();
 	vector<Vec3b>::reverse_iterator it2 = v2.rbegin();
 
-	for (; it1 != v1.end() && it2 != v2.rend();
-		it1++, it2++)
+	for (; it1 != v1.end() && it2 != v2.rend(); it1++, it2++)
 	{
 		diff += compare((*it1)[0], (*it2)[0]) + compare((*it1)[1], (*it2)[1]) + compare((*it1)[2], (*it2)[2]);
 		c++;
@@ -325,8 +323,13 @@ float PuzzelRectange::computeBackgroundSimilarity(Vec3f circle, bool isinside)
 	int circleR_2 = circleR * circleR;
 	float score = 0;
 
-	for (int y = circleY - circleR / 2; y < circleY + circleR / 2; y++)
-		for (int x = circleX - circleR / 2; x < circleX + circleR / 2; x++)
+	int yStart = circleY - circleR / 2;
+	int yStop = MIN(circleY + circleR / 2, puzzelArea.rows);
+	for (int y = MAX(0, yStart); y < yStop; y++)
+	{
+		int xStart = circleX - circleR / 2;
+		int xStop = MIN(circleX + circleR / 2, puzzelArea.cols);
+		for (int x = MAX(0, xStart); x < xStop; x++)
 		{
 			int dx = x - circleX;
 			int dy = y - circleY;
@@ -337,6 +340,7 @@ float PuzzelRectange::computeBackgroundSimilarity(Vec3f circle, bool isinside)
 				score += isinside ? isBackground(pixel) : isNotBackground(pixel);
 			}
 		}
+	}
 
 	return score;
 }
