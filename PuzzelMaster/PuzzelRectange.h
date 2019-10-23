@@ -57,5 +57,16 @@ public:
 	float isBackground(Vec3b pixel);
 	float isNotBackground(Vec3b pixel);
 	Mat GetContours();
+
+#if 1
+	#define MIN_LINE_LEN 18
+	#define LINE_TRESHOLD 18
+	#define MAX_LINE_GAP 5
+#else
+	#define MIN_LINE_LEN 15
+	#define LINE_TRESHOLD 15
+	#define MAX_LINE_GAP 6
+#endif
+
 };
 

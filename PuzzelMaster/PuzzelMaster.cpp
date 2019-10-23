@@ -39,7 +39,7 @@ Mat ComposePuzzels(vector<PuzzelRectange> puzzels)
 
 	int puzzelsPerRow = sqrt(puzzels.size());
 	int rowNr = ceil(1.0 * puzzels.size() / puzzelsPerRow);
-	Mat mosaic(maxRows * rowNr, maxCols * puzzelsPerRow, puzzels[0].puzzelArea.type());
+	Mat mosaic = Mat::zeros(maxRows * rowNr, maxCols * puzzelsPerRow, puzzels[0].puzzelArea.type());
 
 	int i = 0;
 	int row = 0;
@@ -104,10 +104,10 @@ void thresh_callback(int, void*)
 		name += to_string(n++);
 		Mat image = puzzel->puzzelArea;
 		cout << name
-			<< " n=" << n
+			<< " n=" << puzzel->id
 			<< "  hit score=" << puzzel->hitScore
 			<< "  rec score=" << puzzel->recScore
-			<< "  int score=" << puzzel->interestScore
+			<< "  har score=" << puzzel->interestScore
 			<< "  area score=" << puzzel->areaScore
 			<< endl;
 		/*line(image, puzzel->left, puzzel->upper, color2);

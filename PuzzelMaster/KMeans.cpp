@@ -235,12 +235,9 @@ void KMeans::DrawBoxes(Mat& img)
 	{
 		vector<vector<cv::Point>*> buffer;
 		GetCloseContours(*centre, &buffer);
-
 		auto mergedContour = MergeContours(&buffer);
-		//auto box = boundingRect(*mergedContour);
 		auto box = minAreaRect(*mergedContour);
 		Scalar color = Scalar(80, 100, 120);
-		//rectangle(img, box.tl(), box.br(), color, 2);
 
 		Point2f rect_points[4];
 		box.points(rect_points);
@@ -398,6 +395,7 @@ vector<PuzzelRectange>* KMeans::FindBestRectange(vector<Point2f>& corners, Mat &
 							continue;
 						}
 						candidate.hitScore = 1.0 * hit / (hit + miss);
+						//candidate.hitScore *= candidate.hitScore;
 						if (candidate.hitScore < 0.5)
 						{
 							continue;

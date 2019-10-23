@@ -93,7 +93,7 @@ void RemoveLines(Mat& edges, Mat& sourceImg)
 {
 	vector<Vec4i> lines;
 	//HoughLines(edges, lines, 1, CV_PI / 180, 20, 0, 0);
-	HoughLinesP(edges, lines, 1, 0.01, 15, 15, 6);
+	HoughLinesP(edges, lines, 1, 0.01, LINE_TRESHOLD, MIN_LINE_LEN, MAX_LINE_GAP);
 	//clean(lines, edges);
 	for (size_t i = 0; i < lines.size(); i++)
 	{

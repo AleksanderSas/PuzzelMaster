@@ -6,13 +6,6 @@ void Utils::WriteColoredText(string text, unsigned int colorIdx)
 {
 	HANDLE  hConsole;
 	hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-
-	// color your text in Windows console mode
-	// colors are 0=black 1=blue 2=green and so on to 15=white  
-	// colorattribute = foreground + background * 16
-	// to get red text on yellow use 4 + 14*16 = 228
-	// light red on yellow would be 12 + 14*16 = 236
-
 	FlushConsoleInputBuffer(hConsole);
 	SetConsoleTextAttribute(hConsole, colorIdx);
 
