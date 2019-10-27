@@ -2,6 +2,7 @@
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
+#include "BackgroundSeparator.h"
 
 using namespace std;
 using namespace cv;
@@ -19,7 +20,7 @@ struct edgeFeature
 class PuzzelRectange
 {
 public:
-	PuzzelRectange(Point2f& left, Point2f& right, Point2f& lower, Point2f& upper, int id);
+	PuzzelRectange(Point2f& left, Point2f& right, Point2f& lower, Point2f& upper, int id, BackgroundSeparator* backgroundSeparator);
 
 	Point2f left, right, lower, upper;
 	Mat puzzelArea;
@@ -28,6 +29,7 @@ public:
 	double recScore;
 	double interestScore;
 	double areaScore;
+	double noneBackgroundScore;
 	vector<vector<Point>*> *contours;
 	int id;
 	bool isPointInside(int x, int y);
@@ -35,6 +37,8 @@ public:
 	Mat background;
 	float computeBackgroundSimilarity(Vec3f circle, bool isinside);
 	float scoreCircle(Vec3f circle);
+	float scoreArea(BackgroundSeparator* separator);
+	BackgroundSeparator* backgroundSeparator;
 
 	edgeFeature edgeFeatures[4];
 

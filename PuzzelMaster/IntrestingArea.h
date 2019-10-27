@@ -13,12 +13,13 @@ class IntrestingArea
 {
 public:
 	
-	IntrestingArea(Mat areaImage, Mat edgeMap, vector<vector<cv::Point>*> *contours);
+	IntrestingArea(Mat areaImage, Mat edgeMap, vector<vector<cv::Point>*> *contours, Rect originRectange);
 	/*IntrestingArea(IntrestingArea&& ia);
 	IntrestingArea(IntrestingArea& ia);
 	*/
 	Mat AreaImage;
 	Mat EdgeMap;
 	vector<vector<cv::Point>*> *contours;
+	Rect OriginRectange;
 };
 

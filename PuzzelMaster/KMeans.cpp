@@ -2,6 +2,7 @@
 #include <set>
 #include "math.h"
 #include "IntrestingArea.h"
+#include "BackgroundSeparator.h"
 
 KMeans::KMeans(int heigth, int width, int MIN_SQUARE_DISTANCE, int INIT_GRID_DENSITY)
 {
@@ -292,26 +293,26 @@ float GetHarrisScore(Point2f &p, Mat& xDeriv, Mat& yDeriv, float k = 0.04)
 	return 1.0 * dx * dy - k * (dx - dy) * (dx - dy);
 }
 
-float IsMoreOrLessRectange(PuzzelRectange &candidate, Mat& xDeriv, Mat& yDeriv)
+float IsMoreOrLessRectange(PuzzelRectange *candidate, Mat& xDeriv, Mat& yDeriv)
 {
-	Point2f v1 = GetNormalizedVector(candidate.left, candidate.upper);
-	Point2f v2 = GetNormalizedVector(candidate.upper, candidate.right);
-	Point2f v3 = GetNormalizedVector(candidate.right, candidate.lower);
-	Point2f v4 = GetNormalizedVector(candidate.lower, candidate.left);
+	Point2f v1 = GetNormalizedVector(candidate->left, candidate->upper);
+	Point2f v2 = GetNormalizedVector(candidate->upper, candidate->right);
+	Point2f v3 = GetNormalizedVector(candidate->right, candidate->lower);
+	Point2f v4 = GetNormalizedVector(candidate->lower, candidate->left);
 
 	double measure = decide(v1, v2) * decide(v2, v3) * decide(v3, v4) * decide(v4, v1);
-	candidate.recScore = measure;
-	double measure2 = GetHarrisScore(candidate.left, xDeriv, yDeriv) 
-					* GetHarrisScore(candidate.lower, xDeriv, yDeriv)
-					* GetHarrisScore(candidate.right, xDeriv, yDeriv) 
-					* GetHarrisScore(candidate.upper, xDeriv, yDeriv);
+	candidate->recScore = measure;
+	double measure2 = GetHarrisScore(candidate->left, xDeriv, yDeriv)
+					* GetHarrisScore(candidate->lower, xDeriv, yDeriv)
+					* GetHarrisScore(candidate->right, xDeriv, yDeriv)
+					* GetHarrisScore(candidate->upper, xDeriv, yDeriv);
 	measure2 = sqrt(sqrt(sqrt(measure2)));
-	candidate.interestScore = measure2;
+	candidate->interestScore = measure2;
 
 	if (measure > 0.1)
 	{
-		Point2f v1 = GetVector(candidate.left, candidate.upper);
-		Point2f v2 = GetVector(candidate.upper, candidate.right);
+		Point2f v1 = GetVector(candidate->left, candidate->upper);
+		Point2f v2 = GetVector(candidate->upper, candidate->right);
 
 		int a = v1.x * v1.x + v1.y * v1.y;
 		int b = v2.x * v2.x + v2.y * v2.y;
@@ -321,7 +322,7 @@ float IsMoreOrLessRectange(PuzzelRectange &candidate, Mat& xDeriv, Mat& yDeriv)
 			return 0.0;
 		
 		double area = sqrt(sqrt(a * b));
-		candidate.areaScore = area;
+		candidate->areaScore = area;
 		return area * measure;
 	}
 
@@ -340,17 +341,17 @@ void UpdateHitMetric(Mat& edgeMap, int xPos, int yPos, int& hit, int& miss)
 	}
 }
 
-void ComputeEdgeHits(Mat& edgeMap, PuzzelRectange &puzzel, int& hit, int& miss)
+void ComputeEdgeHits(Mat& edgeMap, PuzzelRectange *puzzel, int& hit, int& miss)
 {
 	auto counter = [&](int x, int y) {UpdateHitMetric(edgeMap, x, y, hit, miss); return true; };
 
-	ProcessLine(puzzel.left, puzzel.lower, counter);
-	ProcessLine(puzzel.left, puzzel.upper, counter);
-	ProcessLine(puzzel.right, puzzel.lower, counter);
-	ProcessLine(puzzel.right, puzzel.upper, counter);
+	ProcessLine(puzzel->left, puzzel->lower, counter);
+	ProcessLine(puzzel->left, puzzel->upper, counter);
+	ProcessLine(puzzel->right, puzzel->lower, counter);
+	ProcessLine(puzzel->right, puzzel->upper, counter);
 }
 
-vector<PuzzelRectange>* KMeans::FindBestRectange(vector<Point2f>& corners, Mat &xDeriv, Mat& yDeriv, Mat &edgeMap)
+vector<PuzzelRectange*>* KMeans::FindBestRectange(vector<Point2f>& corners, Mat &xDeriv, Mat& yDeriv, IntrestingArea& ia)
 {
 	auto vSorted = vector<Point2f>(corners);
 	auto hSorted = vector<Point2f>(corners);
@@ -359,18 +360,31 @@ vector<PuzzelRectange>* KMeans::FindBestRectange(vector<Point2f>& corners, Mat &
 	sort(hSorted.begin(), hSorted.end(), hComparer);
 
 	int counter = 0;
-	vector<PuzzelRectange>* rects = new vector<PuzzelRectange>();
+	vector<PuzzelRectange*>* rects = new vector<PuzzelRectange*>();
 
 	for (vector<Point2f>::iterator left = hSorted.begin(); left != hSorted.end(); left++)
 	{
 		for (vector<Point2f>::iterator right = left + 1; right != hSorted.end(); right++)
 		{
+			int dx = left->x - right->x;
+			int dy = left->y - right->y;
+			if (dx * dx + dy + dy < 40 * 40)
+			{
+				continue;
+			}
 			for (vector<Point2f>::iterator upper = left + 1; upper != right; upper++)
 			{
 				if (right-> x == upper-> x && right->y == upper->y)
 				{
 					continue;
 				}
+				Point2f v1 = GetNormalizedVector(*left, *upper);
+				Point2f v2 = GetNormalizedVector(*upper, *right);
+
+				double measure = decide(v1, v2);
+				if (measure < 0.9)
+					continue;
+
 				for (vector<Point2f>::iterator lower = left + 1; lower != right; lower++)
 				{
 					if (lower->x == upper->x && lower->y == upper->y)
@@ -382,26 +396,29 @@ vector<PuzzelRectange>* KMeans::FindBestRectange(vector<Point2f>& corners, Mat &
 					{
 						continue;
 					}
-					PuzzelRectange candidate(*left, *right, *lower, *upper, counter++);
+					PuzzelRectange* candidate = new PuzzelRectange(*left, *right, *lower, *upper, counter++, separator);
+					candidate->puzzelArea = ia.AreaImage;
 
 					double r = IsMoreOrLessRectange(candidate, xDeriv, yDeriv);
 					if (r > 0.0)
 					{
+						//float noneBackgroundScore = candidate.scoreArea(separator);
+						//r *= noneBackgroundScore;
 						int hit = 0;
 						int miss = 0;
-						ComputeEdgeHits(edgeMap, candidate, hit, miss);
+						ComputeEdgeHits(ia.EdgeMap, candidate, hit, miss);
 						if (hit + miss == 0)
 						{
 							continue;
 						}
-						candidate.hitScore = 1.0 * hit / (hit + miss);
+						candidate->hitScore = 1.0 * hit / (hit + miss);
 						//candidate.hitScore *= candidate.hitScore;
-						if (candidate.hitScore < 0.5)
+						if (candidate->hitScore < 0.5)
 						{
 							continue;
 						}
 						r *= 1.0 * hit / (hit + miss);
-						candidate.score = r;
+						candidate->score = r;
 						rects->push_back(candidate);
 					}
 					/*if (r > best.score)
@@ -446,12 +463,11 @@ vector<IntrestingArea> KMeans::GetPuzzels(Mat &img, Mat& edgeMap)
 		GetCloseContours(*centre, buffer);
 
 		auto mergedContour = MergeContours(buffer);
-		//auto box = boundingRect(*mergedContour);
 		auto box = minAreaRect(*mergedContour);
 		int padding = 10;
-		puzzelAreas.push_back(IntrestingArea(Extract(box, img, padding), Extract(box, edgeMap, padding), buffer));
+		puzzelAreas.push_back(IntrestingArea(Extract(box, img, padding), Extract(box, edgeMap, padding), buffer, boundingRect(*mergedContour)));
 	}
-
+	separator = new BackgroundSeparator(img, puzzelAreas);
 	return puzzelAreas;
 }
 

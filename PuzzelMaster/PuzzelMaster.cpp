@@ -90,8 +90,7 @@ void thresh_callback(int, void*)
 {
 	puzzelDetector->cannEdgeThresh = thresh;
 	auto puzzels = puzzelDetector->DetectPuzzels();
-	
-	int n = 0;
+
 	Scalar color1(120, 30, 210);
 	Scalar color2(220, 20, 10);
 
@@ -101,14 +100,13 @@ void thresh_callback(int, void*)
 		//puzzel->computeBackgroundColor();
 		string name("Pxx");
 		puzzel->ComputeEdgeFeatures(name + "_R");
-		name += to_string(n++);
 		Mat image = puzzel->puzzelArea;
-		cout << name
-			<< " n=" << puzzel->id
-			<< "  hit score=" << puzzel->hitScore
+		cout << " n=" << puzzel->id
+			<< "\t hit score=" << puzzel->hitScore
 			<< "  rec score=" << puzzel->recScore
 			<< "  har score=" << puzzel->interestScore
 			<< "  area score=" << puzzel->areaScore
+			<< "  bckg score=" << puzzel->noneBackgroundScore
 			<< endl;
 		/*line(image, puzzel->left, puzzel->upper, color2);
 		line(image, puzzel->left, puzzel->lower, color2);
@@ -119,11 +117,11 @@ void thresh_callback(int, void*)
 		
 		
 	}
-
-	puzzels[3].FindNeighbour(puzzels, 0, "w0");
-	puzzels[3].FindNeighbour(puzzels, 1, "w1");
-	puzzels[3].FindNeighbour(puzzels, 2, "w2");
-	puzzels[3].FindNeighbour(puzzels, 3, "w3");
+	int puzzelNr = 1;
+	puzzels[puzzelNr].FindNeighbour(puzzels, 0, "w0");
+	puzzels[puzzelNr].FindNeighbour(puzzels, 1, "w1");
+	puzzels[puzzelNr].FindNeighbour(puzzels, 2, "w2");
+	puzzels[puzzelNr].FindNeighbour(puzzels, 3, "w3");
 	//imshow("source winner", puzzels[1].puzzelArea);
 
 	imshow("mosaic", ComposePuzzels(puzzels));

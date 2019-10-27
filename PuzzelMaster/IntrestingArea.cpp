@@ -1,29 +1,8 @@
 #include "IntrestingArea.h"
 
-//IntrestingArea::IntrestingArea() :
-//	AreaImage(Mat()),
-//	EdgeMap(Mat()),
-//	contours(vector<vector<cv::Point>*>())
-//{}
-//
-//
-IntrestingArea:: IntrestingArea(Mat areaImage, Mat edgeMap, vector<vector<cv::Point>*> *contours):
+IntrestingArea:: IntrestingArea(Mat areaImage, Mat edgeMap, vector<vector<cv::Point>*> *contours, Rect originRectange):
 	AreaImage(areaImage), 
 	EdgeMap(edgeMap), 
-	contours(contours)
+	contours(contours),
+	OriginRectange(originRectange)
 {}
-//
-//IntrestingArea::IntrestingArea(IntrestingArea&& ia) : AreaImage(ia.AreaImage),
-//EdgeMap(ia.EdgeMap),
-//contours(ia.contours)
-//{
-//
-//}
-//
-//IntrestingArea::IntrestingArea(IntrestingArea& ia) : AreaImage(ia.AreaImage),
-//EdgeMap(ia.EdgeMap),
-//contours(ia.contours)
-//{
-//
-//}
-

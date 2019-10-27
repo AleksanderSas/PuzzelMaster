@@ -13,8 +13,8 @@ Vec3f ParametrizeLine(Point2f& c1, Point2f& c2)
 	return p;
 }
 
-PuzzelRectange::PuzzelRectange(Point2f& left, Point2f& right, Point2f& lower, Point2f& upper, int id)
-	: left(left), right(right), lower(lower), upper(upper), id(id)
+PuzzelRectange::PuzzelRectange(Point2f& left, Point2f& right, Point2f& lower, Point2f& upper, int id, BackgroundSeparator* _backgroundSeparator)
+	: left(left), right(right), lower(lower), upper(upper), id(id), backgroundSeparator(_backgroundSeparator)
 {
 	lineParameters_left_upper = ParametrizeLine(left, upper);
 	lineParameters_upper_rigth = ParametrizeLine(upper, right);
@@ -124,7 +124,7 @@ vector<Vec3f> PuzzelRectange::FindJointCandidates(Mat& puzzelArea)
 	RemoveLines(canny_output, puzzelArea);
 
 	int thickness = 2;
-	int minDist = d / 12;
+	int minDist = d / 15;
 	line(canny_output, left, upper, color, thickness);
 	line(canny_output, left, lower, color, thickness);
 	line(canny_output, right, upper, color, thickness);
@@ -140,7 +140,7 @@ vector<Vec3f> PuzzelRectange::FindJointCandidates(Mat& puzzelArea)
 	//);
 	HoughCircles(canny_output, circles, HOUGH_GRADIENT, 1.3,
 		minDist,  // change this value to detect circles with different distances to each other
-		13, 7, minRadius, maxRadius // change the last two parameters
+		15, 9, minRadius, maxRadius // change the last two parameters
 	// (min_radius & max_radius) to detect larger circles
 	);
 
@@ -322,6 +322,7 @@ float PuzzelRectange::computeBackgroundSimilarity(Vec3f circle, bool isinside)
 	int circleR = circle[2];
 	int circleR_2 = circleR * circleR;
 	float score = 0;
+	int count = 0;
 
 	int yStart = circleY - circleR / 2;
 	int yStop = MIN(circleY + circleR / 2, puzzelArea.rows);
@@ -337,11 +338,22 @@ float PuzzelRectange::computeBackgroundSimilarity(Vec3f circle, bool isinside)
 			if (dx * dx + dy * dy <= circleR_2 && (isinside && _isPointInside || !isinside && !_isPointInside))
 			{
 				Vec3b pixel = puzzelArea.at<Vec3b>(y, x);
-				score += isinside ? isBackground(pixel) : isNotBackground(pixel);
+				float tmp = isinside ? isBackground(pixel) : isNotBackground(pixel);
+				if (!isnan(tmp))
+				{
+					count++;
+					score += tmp;
+				}
+				else
+				{
+					int tt = 0;
+				}
 			}
 		}
 	}
-
+	if (count == 0)
+		return 0.0;
+	score /= count;
 	return score;
 }
 
@@ -359,9 +371,9 @@ void PuzzelRectange::FindBestCircleJoin(vector<Vec3f>& circles, Point2f c1, Poin
 
 	for (size_t i = 0; i < circles.size(); i++)
 	{
-		Vec3i circle = circles[i];
-		Point center = Point(circle[0], circle[1]);
-		int radius = circle[2];
+		Vec3i _circle = circles[i];
+		Point center = Point(_circle[0], _circle[1]);
+		int radius = _circle[2];
 		int squareDistValue = squareDist(lineParams, center.x, center.y);
 		if (squareDistValue < 1.2 * radius * radius && squareDistValue > 0.4 * radius * radius)
 		{
@@ -376,26 +388,30 @@ void PuzzelRectange::FindBestCircleJoin(vector<Vec3f>& circles, Point2f c1, Poin
 			}
 
 			//int match = abs(radius - sqrt(squareDistValue)) + abs(c1Dist - c2Dist) - level * 8;
-			float condidateScore = scoreCircle(circle);
+			float condidateScore = scoreCircle(_circle);
 
 			if (1.0 * abs(c1Dist - c2Dist) / (c1Dist + c2Dist) < 0.5)
 			{
 				if (bestScore < condidateScore)
 				{
-					candidate = circle;
+					candidate = _circle;
 					bestScore = condidateScore;
 				}
+				//
+				//{
+				//	cout << id << "    " << isPointInside(candidate[0], candidate[1]) << "   " << condidateScore<< endl;
+				//	circle(puzzelArea, Point(candidate[0], candidate[1]), radius, Scalar(100, 40, 200), 1, LINE_AA);
+				//}
 			}
 		}
 	}
-	
-	Point center = Point(candidate[0], candidate[1]);
-	circle(puzzelArea, center, 1, Scalar(0, 100, 100), 3, LINE_AA);
 
 	// circle outline
 	e->isMaleJoint = isPointInside(candidate[0], candidate[1]);
 	e->joint = candidate;
 
+	Point center = Point(candidate[0], candidate[1]);
+	circle(puzzelArea, center, 1, e->isMaleJoint? Scalar(0, 100, 100) : Scalar(100, 40, 200), 3, LINE_AA);
 }
 
 void PuzzelRectange::ReconstructBorder()
@@ -420,10 +436,10 @@ bool PuzzelRectange::isPointInside(int x, int y)
 	int f3 = distSign(lineParameters_right_lower, testX, testY) < 0 ? -1 : 1;
 	int f4 = distSign(lineParameters_upper_rigth, testX, testY) < 0 ? -1 : 1;
 
-	return distSign(lineParameters_left_upper, x, y) * f1>= 0 &&
-		   distSign(lineParameters_lower_left, x, y) * f2>= 0 &&
-		   distSign(lineParameters_right_lower, x, y) * f3>= 0 &&
-		   distSign(lineParameters_upper_rigth, x, y) * f4>= 0;
+	return distSign(lineParameters_left_upper, x, y) * f1 >= 0 &&
+		   distSign(lineParameters_lower_left, x, y) * f2 >= 0 &&
+		   distSign(lineParameters_right_lower, x, y) * f3 >= 0 &&
+		   distSign(lineParameters_upper_rigth, x, y) * f4 >= 0;
 }
 
 Mat PuzzelRectange::GetContours()
@@ -487,7 +503,38 @@ float PuzzelRectange::isNotBackground(Vec3b pixel)
 
 float PuzzelRectange::isBackground(Vec3b pixel)
 {
-	float colorUnderBackgroundProbability = qubeBackgroundHistogram[pixel[0] / QUBE_BIN][pixel[1] / QUBE_BIN][pixel[2] / QUBE_BIN];
+	return backgroundSeparator->scorePoint(&pixel);
+	/*float colorUnderBackgroundProbability = qubeBackgroundHistogram[pixel[0] / QUBE_BIN][pixel[1] / QUBE_BIN][pixel[2] / QUBE_BIN];
 	float colorProbability = qubeHistogram[pixel[0] / QUBE_BIN][pixel[1] / QUBE_BIN][pixel[2] / QUBE_BIN];
-	return colorUnderBackgroundProbability / colorProbability * backgroundProbability;
+	return colorUnderBackgroundProbability / colorProbability * backgroundProbability;*/
+}
+
+//TODO: to moze byc keszowane pomiedzy kandydatami korzystajacemi z tego samego obszaru
+float PuzzelRectange::scoreArea(BackgroundSeparator* separator)
+{
+	int count = 0;
+	float score = 0.0;
+	Vec3b* p_source;
+	for (int i = 0; i < puzzelArea.rows; ++i)
+	{
+		p_source = puzzelArea.ptr<Vec3b>(i);
+		for (int j = 0; j < puzzelArea.cols; ++j, ++p_source)
+		{
+			if (isPointInside(j, i))
+			{
+				float xxx = (1 - separator->scorePoint(p_source));
+				if (!isnan(xxx))
+				{
+					count++;
+					score += xxx;
+				}
+			}
+		}
+	}
+	if (count == 0)
+		return 0;
+	score /= count;
+	noneBackgroundScore = score;
+
+	return score;
 }

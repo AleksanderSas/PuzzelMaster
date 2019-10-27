@@ -27,12 +27,14 @@ public:
 	vector<Centre*> centres;
 	
 	vector<IntrestingArea> GetPuzzels(Mat &img, Mat &edgeMap);
-	vector<PuzzelRectange>* FindBestRectange(vector<Point2f> &corners, Mat& xDeriv, Mat& yDeriv, Mat& edgeMap);
+	vector<PuzzelRectange*>* FindBestRectange(vector<Point2f> &corners, Mat& xDeriv, Mat& yDeriv, IntrestingArea& ia);
 	
 
 private:
 	int heigth;
 	int width;
+
+	BackgroundSeparator* separator;
 
 	int MIN_SQUARE_DISTANCE = 1600;
 	int INIT_GRID_DENSITY = 10;

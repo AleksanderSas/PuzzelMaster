@@ -159,6 +159,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="BackgroundSeparator.cpp" />
     <ClCompile Include="IntrestingArea.cpp" />
     <ClCompile Include="KMeans.cpp" />
     <ClCompile Include="PuzzelRectange.cpp" />
@@ -168,6 +169,7 @@
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BackgroundSeparator.h" />
     <ClInclude Include="IntrestingArea.h" />
     <ClInclude Include="KMeans.h" />
     <ClInclude Include="PuzzelRectange.h" />

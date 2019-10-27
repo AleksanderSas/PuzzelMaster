@@ -67,7 +67,7 @@ void DetectJoint(Mat &puzzel, Mat &edges, Point2f &p1, Point2f &p2)
 	}
 }
 
-bool vComparer(PuzzelRectange i, PuzzelRectange j) { return (j.score < i.score); };
+bool vComparer(PuzzelRectange *i, PuzzelRectange *j) { return (j->score < i->score); };
 
 void ProcessOnePuzzel(IntrestingArea &ia, const char* name, KMeans& km, vector<PuzzelRectange> &returnBuffer)
 {
@@ -82,10 +82,10 @@ void ProcessOnePuzzel(IntrestingArea &ia, const char* name, KMeans& km, vector<P
 
 	double k = 0.04;
 
-	int maxCorners = 35;
+	int maxCorners =  35;
 	vector<Point2f> corners;
-	double qualityLevel = 0.005;
-	double minDistance = 10;
+	double qualityLevel = 0.004;
+	double minDistance = 8;
 	int blockSize = 3, gradientSize = 3;
 	bool useHarrisDetector = false;
 
@@ -101,7 +101,12 @@ void ProcessOnePuzzel(IntrestingArea &ia, const char* name, KMeans& km, vector<P
 		k);
 	cout << "** Number of corners detected: " << corners.size() << endl;
 
-	auto result = km.FindBestRectange(corners, xDeriv, yDeriv, ia.EdgeMap);
+	/*for (auto it = corners.begin(); it != corners.end(); it++)
+	{
+		drawMarker(ia.AreaImage, *it, Scalar(123, 231, 90));
+	}*/
+
+	auto result = km.FindBestRectange(corners, xDeriv, yDeriv, ia);
 	
 	sort(result->begin(), result->end(), vComparer);
 	
@@ -111,7 +116,7 @@ void ProcessOnePuzzel(IntrestingArea &ia, const char* name, KMeans& km, vector<P
 		//{
 		//	drawMarker(puzzel, *p, Scalar(60, 160, 30));
 		//}
-		PuzzelRectange& bestRectangle = result->at(0);
+		PuzzelRectange bestRectangle = *(result->at(0));
 		/*DetectJoint(ia.AreaImage, ia.EdgeMap, bestRectangle.left, bestRectangle.upper);
 		DetectJoint(ia.AreaImage, ia.EdgeMap, bestRectangle.left, bestRectangle.lower);
 		DetectJoint(ia.AreaImage, ia.EdgeMap, bestRectangle.right, bestRectangle.upper);
@@ -204,7 +209,7 @@ vector<PuzzelRectange> PuzzelDetector::DetectPuzzels()
 
 	vector<IntrestingArea> puzzelAreas = knn.GetPuzzels(image, edgeMap);
 	vector<PuzzelRectange> puzzels;
-
+	
 	for (int i = 0; i < puzzelAreas.size(); i++)
 	{
 		string name = string("P") + to_string(i);
