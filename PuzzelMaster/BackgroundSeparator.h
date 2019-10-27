@@ -15,7 +15,7 @@ public:
 
 private:
 	Mat& image;
-	void buildHistogram(function<bool(Point2i&)> filter);
+	void buildHistogram(function<float(Point2i&)> filter);
 	void initializeHistogram(vector<IntrestingArea>& puzzelCandidateArea);
 	void tune();
 	void showImg(const char* name = "backgroundMap");
@@ -23,7 +23,7 @@ private:
 	void normalizeBackgroundHistograms(int pointCount);
 	Mat getMatchMap();
 
-#define QUBE_BIN 6
+#define QUBE_BIN 4
 #define QUBE_SIZE (256 / QUBE_BIN)
 #define TOTAL_QUBE_SIZE QUBE_SIZE * QUBE_SIZE * QUBE_SIZE
 	float qubeBackgroundHistogram[QUBE_SIZE][QUBE_SIZE][QUBE_SIZE];

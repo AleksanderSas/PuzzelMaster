@@ -10,8 +10,10 @@ BackgroundSeparator::BackgroundSeparator(Mat& img, vector<IntrestingArea> puzzel
 	for (int i = 1; i <= 15; i++)
 	{
 		tune();
+		/*showImg(("backgrounfMap_" + to_string(i)).c_str());
+		waitKey(1);*/
 	}
-	showImg("backgrounfMap_15");
+	showImg("backgrounfMap");
 	waitKey(1);
 }
 
@@ -27,13 +29,13 @@ bool isNotInsidePuzzelCandidate(Point2i &p, vector<IntrestingArea>& puzzelCandid
 
 void BackgroundSeparator::initializeHistogram(vector<IntrestingArea>& puzzelCandidateArea)
 {
-	auto filter = [&](Point2i& p) {return isNotInsidePuzzelCandidate(p, puzzelCandidateArea); };
+	auto filter = [&](Point2i& p) {return isNotInsidePuzzelCandidate(p, puzzelCandidateArea)? 1.0 : 0.0; };
 	buildHistogram(filter);
 }
 
-void BackgroundSeparator::buildHistogram(function<bool(Point2i&)> filter)
+void BackgroundSeparator::buildHistogram(function<float(Point2i&)> filter)
 {
-	int c = 0;
+	float c = 0;
 	Vec3b* p;
 	for (int i = 0; i < image.rows; ++i)
 	{
@@ -41,10 +43,11 @@ void BackgroundSeparator::buildHistogram(function<bool(Point2i&)> filter)
 		for (int j = 0; j < image.cols; ++j, p++)
 		{
 			Point2i point(j, i);
-			if (filter(point))
+			float tmp = filter(point);
+			//if (filter(point))
 			{
-				getQubeBackgroundBin(p) += 1;
-				c++;
+				getQubeBackgroundBin(p) += tmp;
+				c += tmp;
 			}
 			getQubeColorBin(p) += 1;
 		}
@@ -61,7 +64,9 @@ void BackgroundSeparator::tune()
 	auto filter = [&](Point2i& p) 
 	{
 		unsigned char ppp = img.at<unsigned char>(p);
-		return ppp > 110; 
+		if (ppp > 160) return 1.0;
+		if (ppp < 80) return 0.0;
+		return 0.4 + 0.35 * (ppp - 80) / 80;
 	};
 	buildHistogram(filter);
 }
