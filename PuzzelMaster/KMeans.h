@@ -27,7 +27,7 @@ public:
 	vector<Centre*> centres;
 	
 	vector<IntrestingArea> GetPuzzels(Mat &img, Mat &edgeMap);
-	vector<PuzzelRectange*>* FindBestRectange(vector<Point2f> &corners, Mat& xDeriv, Mat& yDeriv, IntrestingArea& ia);
+	PuzzelRectange* FindBestRectange(vector<Point2f> &corners, Mat& xDeriv, Mat& yDeriv, IntrestingArea& ia);
 	
 
 private:
@@ -44,5 +44,6 @@ void ComputeEdgeHits(Mat& edgeMap, PuzzelRectange& puzzel, int& hit, int& miss);
 
 void ProcessLine(Point2i start, Point2i end, function<bool(int, int)> processor);
 
+#define MIN_CROSS_PROD 0.997
 #endif  
 

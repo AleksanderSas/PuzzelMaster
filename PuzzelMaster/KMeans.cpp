@@ -280,7 +280,7 @@ float crossProduct(Point2f& a, Point2f& centre, Point2f& b)
 	return abs(x1 * y2 - x2 * y1);
 }
 
-double decide(Point2f& v1, Point2f& v2, double treshold = 0.997)
+double decide(Point2f& v1, Point2f& v2, double treshold = MIN_CROSS_PROD)
 {
 	double result = abs(v1.cross(v2));
 	return result >= treshold ? result : 0.0;
@@ -351,7 +351,7 @@ void ComputeEdgeHits(Mat& edgeMap, PuzzelRectange *puzzel, int& hit, int& miss)
 	ProcessLine(puzzel->right, puzzel->upper, counter);
 }
 
-vector<PuzzelRectange*>* KMeans::FindBestRectange(vector<Point2f>& corners, Mat &xDeriv, Mat& yDeriv, IntrestingArea& ia)
+PuzzelRectange* KMeans::FindBestRectange(vector<Point2f>& corners, Mat &xDeriv, Mat& yDeriv, IntrestingArea& ia)
 {
 	auto vSorted = vector<Point2f>(corners);
 	auto hSorted = vector<Point2f>(corners);
@@ -360,7 +360,7 @@ vector<PuzzelRectange*>* KMeans::FindBestRectange(vector<Point2f>& corners, Mat 
 	sort(hSorted.begin(), hSorted.end(), hComparer);
 
 	int counter = 0;
-	vector<PuzzelRectange*>* rects = new vector<PuzzelRectange*>();
+	PuzzelRectange* bestRects = nullptr;
 
 	for (vector<Point2f>::iterator left = hSorted.begin(); left != hSorted.end(); left++)
 	{
@@ -382,8 +382,10 @@ vector<PuzzelRectange*>* KMeans::FindBestRectange(vector<Point2f>& corners, Mat 
 				Point2f v2 = GetNormalizedVector(*upper, *right);
 
 				double measure = decide(v1, v2);
-				if (measure < 0.9)
+				if (measure < MIN_CROSS_PROD)
+				{
 					continue;
+				}
 
 				for (vector<Point2f>::iterator lower = left + 1; lower != right; lower++)
 				{
@@ -402,8 +404,8 @@ vector<PuzzelRectange*>* KMeans::FindBestRectange(vector<Point2f>& corners, Mat 
 					double r = IsMoreOrLessRectange(candidate, xDeriv, yDeriv);
 					if (r > 0.0)
 					{
-						//float noneBackgroundScore = candidate.scoreArea(separator);
-						//r *= noneBackgroundScore;
+						float noneBackgroundScore = candidate->scoreArea(separator);
+						r *= noneBackgroundScore;
 						int hit = 0;
 						int miss = 0;
 						ComputeEdgeHits(ia.EdgeMap, candidate, hit, miss);
@@ -417,9 +419,19 @@ vector<PuzzelRectange*>* KMeans::FindBestRectange(vector<Point2f>& corners, Mat 
 						{
 							continue;
 						}
-						r *= 1.0 * hit / (hit + miss);
+						r *= candidate->hitScore;
 						candidate->score = r;
-						rects->push_back(candidate);
+						if (bestRects == nullptr || candidate->score > bestRects->score)
+						{
+							if (bestRects == nullptr)
+							{
+								delete bestRects;
+							}
+							bestRects = candidate;
+						}
+
+						/*std::cout << ia.id << " ";
+						candidate->PrintScores();*/
 					}
 					/*if (r > best.score)
 					{
@@ -430,7 +442,7 @@ vector<PuzzelRectange*>* KMeans::FindBestRectange(vector<Point2f>& corners, Mat 
 			}
 		}
 	}
-	return rects;
+	return bestRects;
 }
 
 Mat Extract(RotatedRect rect, Mat &src, int extendBySize = 0)
@@ -457,6 +469,7 @@ Mat Extract(RotatedRect rect, Mat &src, int extendBySize = 0)
 vector<IntrestingArea> KMeans::GetPuzzels(Mat &img, Mat& edgeMap)
 {
 	vector<IntrestingArea> puzzelAreas;
+	int id = 0;
 	for (vector<Centre*>::iterator centre = centres.begin(); centre != centres.end(); centre++)
 	{
 		vector<vector<cv::Point>*> *buffer = new vector<vector<cv::Point>*>();
@@ -465,7 +478,7 @@ vector<IntrestingArea> KMeans::GetPuzzels(Mat &img, Mat& edgeMap)
 		auto mergedContour = MergeContours(buffer);
 		auto box = minAreaRect(*mergedContour);
 		int padding = 10;
-		puzzelAreas.push_back(IntrestingArea(Extract(box, img, padding), Extract(box, edgeMap, padding), buffer, boundingRect(*mergedContour)));
+		puzzelAreas.push_back(IntrestingArea(Extract(box, img, padding), Extract(box, edgeMap, padding), buffer, boundingRect(*mergedContour), id++));
 	}
 	separator = new BackgroundSeparator(img, puzzelAreas);
 	return puzzelAreas;

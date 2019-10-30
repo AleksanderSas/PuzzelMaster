@@ -33,12 +33,12 @@ public:
 	vector<vector<Point>*> *contours;
 	int id;
 	bool isPointInside(int x, int y);
-	Mat computeBackgroundColor();
 	Mat background;
 	float computeBackgroundSimilarity(Vec3f circle, bool isinside);
 	float scoreCircle(Vec3f circle);
 	float scoreArea(BackgroundSeparator* separator);
 	BackgroundSeparator* backgroundSeparator;
+	void PrintScores();
 
 	edgeFeature edgeFeatures[4];
 
@@ -53,11 +53,6 @@ public:
 	Vec3f lineParameters_right_lower;
 	Vec3f lineParameters_lower_left;
 
-	float backgroundProbability;
-	#define QUBE_BIN 12
-	#define QUBE_SIZE (256 / QUBE_BIN)
-	float qubeBackgroundHistogram[QUBE_SIZE][QUBE_SIZE][QUBE_SIZE];
-	float qubeHistogram[QUBE_SIZE][QUBE_SIZE][QUBE_SIZE];
 	float isBackground(Vec3b pixel);
 	float isNotBackground(Vec3b pixel);
 	Mat GetContours();

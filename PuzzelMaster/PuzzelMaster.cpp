@@ -100,24 +100,11 @@ void thresh_callback(int, void*)
 		//puzzel->computeBackgroundColor();
 		string name("Pxx");
 		puzzel->ComputeEdgeFeatures(name + "_R");
-		Mat image = puzzel->puzzelArea;
-		cout << " n=" << puzzel->id
-			<< "\t hit score=" << puzzel->hitScore
-			<< "  rec score=" << puzzel->recScore
-			<< "  har score=" << puzzel->interestScore
-			<< "  area score=" << puzzel->areaScore
-			<< "  bckg score=" << puzzel->noneBackgroundScore
-			<< endl;
-		/*line(image, puzzel->left, puzzel->upper, color2);
-		line(image, puzzel->left, puzzel->lower, color2);
-		line(image, puzzel->right, puzzel->upper, color2);
-		line(image, puzzel->right, puzzel->lower, color2);*/
-
-		//imshow(name, image);
+		puzzel->PrintScores();
 		
 		
 	}
-	int puzzelNr = 1;
+	int puzzelNr = 7;
 	puzzels[puzzelNr].FindNeighbour(puzzels, 0, "w0");
 	puzzels[puzzelNr].FindNeighbour(puzzels, 1, "w1");
 	puzzels[puzzelNr].FindNeighbour(puzzels, 2, "w2");

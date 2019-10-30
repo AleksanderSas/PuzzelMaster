@@ -82,23 +82,23 @@ void ProcessOnePuzzel(IntrestingArea &ia, const char* name, KMeans& km, vector<P
 
 	double k = 0.04;
 
-	int maxCorners =  35;
+	int maxCorners =  55;
 	vector<Point2f> corners;
 	double qualityLevel = 0.004;
 	double minDistance = 8;
-	int blockSize = 3, gradientSize = 3;
+	int blockSize = 5, gradientSize = 5;
 	bool useHarrisDetector = false;
 
 	goodFeaturesToTrack(greyMat,
 		corners,
 		maxCorners,
 		qualityLevel,
-		minDistance,
-		Mat(),
+		minDistance
+		/*Mat(),
 		blockSize,
 		gradientSize,
 		useHarrisDetector,
-		k);
+		k*/);
 	cout << "** Number of corners detected: " << corners.size() << endl;
 
 	/*for (auto it = corners.begin(); it != corners.end(); it++)
@@ -108,24 +108,18 @@ void ProcessOnePuzzel(IntrestingArea &ia, const char* name, KMeans& km, vector<P
 
 	auto result = km.FindBestRectange(corners, xDeriv, yDeriv, ia);
 	
-	sort(result->begin(), result->end(), vComparer);
+	//sort(result->begin(), result->end(), vComparer);
 	
-	if (result->size() > 0)
+	if (result != nullptr)
 	{
 		//for (auto p = corners.begin(); p != corners.end(); p++)
 		//{
 		//	drawMarker(puzzel, *p, Scalar(60, 160, 30));
 		//}
-		PuzzelRectange bestRectangle = *(result->at(0));
-		/*DetectJoint(ia.AreaImage, ia.EdgeMap, bestRectangle.left, bestRectangle.upper);
-		DetectJoint(ia.AreaImage, ia.EdgeMap, bestRectangle.left, bestRectangle.lower);
-		DetectJoint(ia.AreaImage, ia.EdgeMap, bestRectangle.right, bestRectangle.upper);
-		DetectJoint(ia.AreaImage, ia.EdgeMap, bestRectangle.right, bestRectangle.lower);
-		imshow(name, ia.AreaImage);*/
 
-		bestRectangle.puzzelArea = ia.AreaImage;
-		bestRectangle.contours = ia.contours;
-		returnBuffer.push_back(bestRectangle);
+		result->puzzelArea = ia.AreaImage;
+		result->contours = ia.contours;
+		returnBuffer.push_back(*result);
 	}
 }
 

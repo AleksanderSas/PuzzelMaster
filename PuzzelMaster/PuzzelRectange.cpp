@@ -147,12 +147,11 @@ vector<Vec3f> PuzzelRectange::FindJointCandidates(Mat& puzzelArea)
 	return circles;
 }
 
+
 void PuzzelRectange::ComputeEdgeFeatures(string name)
 {
-	computeBackgroundColor();
 	vector<Vec3f> circles = FindJointCandidates(puzzelArea);
 	edgeFeature* e = edgeFeatures;
-
 	e->start = left;
 	e->end = lower;
 	FindBestCircleJoin(circles, left, lower, e);
@@ -175,7 +174,6 @@ void PuzzelRectange::ComputeEdgeFeatures(string name)
 	
 	line(puzzelArea, lower, right, Scalar(200, 200, 40));
 	line(puzzelArea, left, upper, Scalar(200, 200, 40));
-	//imshow(name, puzzelArea);
 }
 
 double compare(uchar a, uchar b)
@@ -397,11 +395,11 @@ void PuzzelRectange::FindBestCircleJoin(vector<Vec3f>& circles, Point2f c1, Poin
 					candidate = _circle;
 					bestScore = condidateScore;
 				}
-				//
-				//{
-				//	cout << id << "    " << isPointInside(candidate[0], candidate[1]) << "   " << condidateScore<< endl;
-				//	circle(puzzelArea, Point(candidate[0], candidate[1]), radius, Scalar(100, 40, 200), 1, LINE_AA);
-				//}
+				
+				/*{
+					cout << id << "    " << isPointInside(candidate[0], candidate[1]) << "   " << condidateScore<< endl;
+					circle(puzzelArea, Point(candidate[0], candidate[1]), radius, Scalar(100, 40, 200), 1, LINE_AA);
+				}*/
 			}
 		}
 	}
@@ -416,7 +414,6 @@ void PuzzelRectange::FindBestCircleJoin(vector<Vec3f>& circles, Point2f c1, Poin
 
 void PuzzelRectange::ReconstructBorder()
 {
-	background = computeBackgroundColor();
 	vector<Vec3f> circles = FindJointCandidates(puzzelArea);
 
 	edgeFeature* e = edgeFeatures;
@@ -449,51 +446,6 @@ Mat PuzzelRectange::GetContours()
 	int cannEdgeThresh = 70;
 	Canny(image_gray, canny_output, cannEdgeThresh, cannEdgeThresh * 2);
 	return canny_output;
-}
-
-
-Mat PuzzelRectange::computeBackgroundColor()
-{
-	memset(qubeHistogram, 0, sizeof(float) * QUBE_SIZE * QUBE_SIZE * QUBE_SIZE);
-	memset(qubeBackgroundHistogram, 0, sizeof(float) * QUBE_SIZE * QUBE_SIZE * QUBE_SIZE);
-	
-	int count = 0;
-
-	for (int y = 0; y < puzzelArea.rows; y++) {
-		for (int x = 0; x < puzzelArea.cols; x++) {
-			auto pixel = puzzelArea.at<Vec3b>(y,x);
-			if (!isPointInside(x, y))
-			{
-				qubeBackgroundHistogram[pixel[0] / QUBE_BIN][pixel[1] / QUBE_BIN][pixel[2] / QUBE_BIN] += 1;
-				count++;
-			}
-
-			qubeHistogram[pixel[0] / QUBE_BIN][pixel[1] / QUBE_BIN][pixel[2] / QUBE_BIN] += 1;
-		}
-	}
-
-	int total = puzzelArea.rows * puzzelArea.cols;
-	
-	for (int i = 0; i < QUBE_SIZE; i++)
-		for (int j = 0; j < QUBE_SIZE; j++)
-			for (int k = 0; k < QUBE_SIZE; k++)
-			{
-				qubeHistogram[i][j][k] /= total;
-				qubeBackgroundHistogram[i][j][k] /= count;
-			}
-
-
-	backgroundProbability = 1.0 * count / total;
-
-	Mat xxx = Mat::zeros(puzzelArea.size(), CV_8UC1);
-	for (int y = 0; y < puzzelArea.rows; y++) {
-		for (int x = 0; x < puzzelArea.cols; x++) {
-			xxx.at<unsigned char>(y, x) = isNotBackground(puzzelArea.at<Vec3b>(y, x)) * 255;
-		}
-	}
-
-	//imshow("backg_" + to_string(id), xxx);
-	return xxx;
 }
 
 float PuzzelRectange::isNotBackground(Vec3b pixel)
@@ -537,4 +489,16 @@ float PuzzelRectange::scoreArea(BackgroundSeparator* separator)
 	noneBackgroundScore = score;
 
 	return score;
+}
+
+void PuzzelRectange::PrintScores()
+{
+	cout << " n=" << id
+		<< "\t total score=" << score
+		<< "  hit score=" << hitScore
+		<< "  rec score=" << recScore
+		<< "  har score=" << interestScore
+		<< "  area score=" << areaScore
+		<< "  bckg score=" << noneBackgroundScore
+		<< endl;
 }
