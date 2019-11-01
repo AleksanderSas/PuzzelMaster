@@ -42,8 +42,8 @@ public:
 
 	edgeFeature edgeFeatures[4];
 
-	void ComputeEdgeFeatures(string name);
-	void FindNeighbour(vector<PuzzelRectange>& puzzels, int edgeNr, string name);
+	void ComputeEdgeFeatures();
+	void FindNeighbour(vector<PuzzelRectange*>& puzzels, int edgeNr, string name);
 	void ReconstructBorder();
 	void FindBestCircleJoin(vector<Vec3f>& circles, Point2f c1, Point2f c2, edgeFeature* e);
 	vector<Vec3f> FindJointCandidates(Mat& puzzelArea);

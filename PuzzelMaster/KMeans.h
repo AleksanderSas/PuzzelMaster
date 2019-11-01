@@ -34,16 +34,10 @@ private:
 	int heigth;
 	int width;
 
-	BackgroundSeparator* separator;
-
 	int MIN_SQUARE_DISTANCE = 1600;
 	int INIT_GRID_DENSITY = 10;
 };
 
 void ComputeEdgeHits(Mat& edgeMap, PuzzelRectange& puzzel, int& hit, int& miss);
-
-void ProcessLine(Point2i start, Point2i end, function<bool(int, int)> processor);
-
-#define MIN_CROSS_PROD 0.997
 #endif  
 

@@ -2,6 +2,7 @@
 #include "math.h"
 #include "KMeans.h"
 #include "Utils.h"
+#include "LineProcessor.h"
 
 // [A, B, C]
 Vec3f ParametrizeLine(Point2f& c1, Point2f& c2)
@@ -49,8 +50,8 @@ void ComputeFeatureVector(Mat &m, Point2f& startCorner, Point2f& endCorner, Poin
 	Point2f start2joint = LinearComb(start, end, 1.0 * (dist - start2jointDist + e->joint[2] )/ dist);
 	Point2f joint2end = LinearComb(end, start, 1.0 * (dist - joint2endDist + e->joint[2]) / dist);
 
-	ProcessLine(start, start2joint, [&](int x, int y) {e->colors1.push_back(m.at<Vec3b>(y, x)); return true; });
-	ProcessLine(joint2end, end, [&](int x, int y) {e->colors2.push_back(m.at<Vec3b>(y, x)); return true; });
+	LineProcessor::Process(start, start2joint, [&](int x, int y) {e->colors1.push_back(m.at<Vec3b>(y, x)); return true; });
+	LineProcessor::Process(joint2end, end, [&](int x, int y) {e->colors2.push_back(m.at<Vec3b>(y, x)); return true; });
 }
 
 
@@ -61,40 +62,11 @@ int squareDist(Vec3f& line, int x, int y)
 	return tmp * tmp / tmp2;
 }
 
-
-void clean(vector<Vec4i> lines, Mat& img)
-{
-	for (int y = 0; y < img.rows; y++) {
-		for (int x = 0; x < img.cols; x++) {
-			unsigned char edge = img.at<unsigned char>(y, x);
-			if (edge > 0)
-			{
-				for (auto& line : lines)
-				{
-					Point2f p1(line[0], line[1]);
-					Point2f p2(line[2], line[3]);
-					if ((p1.x >= x && x >= p2.x || p2.x >= x && x >= p1.x) && p1.y >= y && y >= p2.y || p2.y >= y && y >= p1.y)
-					{
-						auto lineParams = ParametrizeLine(p1, p2);
-						int squareDistValue = squareDist(lineParams, x, y);
-						if (squareDistValue <= 2)
-						{
-							img.at<unsigned char>(y, x) = 0;
-							break;
-						}
-					}
-				}
-			}
-		}
-	}
-}
-
 void RemoveLines(Mat& edges, Mat& sourceImg)
 {
 	vector<Vec4i> lines;
 	//HoughLines(edges, lines, 1, CV_PI / 180, 20, 0, 0);
 	HoughLinesP(edges, lines, 1, 0.01, LINE_TRESHOLD, MIN_LINE_LEN, MAX_LINE_GAP);
-	//clean(lines, edges);
 	for (size_t i = 0; i < lines.size(); i++)
 	{
 		Vec4i l = lines[i];
@@ -105,9 +77,6 @@ void RemoveLines(Mat& edges, Mat& sourceImg)
 
 vector<Vec3f> PuzzelRectange::FindJointCandidates(Mat& puzzelArea)
 {
-	int xx1 = hypot(left.x - upper.x, left.y - upper.y);
-	int xx2 = hypot(left.x - lower.x, left.y - lower.y);
-
 	int d = hypot(left.x - upper.x, left.y - upper.y);
 	int maxRadius = d / 5;
 	int minRadius = d / 9;
@@ -129,7 +98,7 @@ vector<Vec3f> PuzzelRectange::FindJointCandidates(Mat& puzzelArea)
 	line(canny_output, left, lower, color, thickness);
 	line(canny_output, right, upper, color, thickness);
 	line(canny_output, right, lower, color, thickness);
-	//dilate(canny_output, xxx, element);
+	//dilate(canny_output, BnondebackgroundProbability, element);
 	imshow("img" + to_string(id), canny_output);
 
 	vector<Vec3f> circles;
@@ -147,8 +116,7 @@ vector<Vec3f> PuzzelRectange::FindJointCandidates(Mat& puzzelArea)
 	return circles;
 }
 
-
-void PuzzelRectange::ComputeEdgeFeatures(string name)
+void PuzzelRectange::ComputeEdgeFeatures()
 {
 	vector<Vec3f> circles = FindJointCandidates(puzzelArea);
 	edgeFeature* e = edgeFeatures;
@@ -217,7 +185,7 @@ double CompareFeatureVectors(edgeFeature* e1, edgeFeature* e2)
 }
 
 static RNG rng(13375);
-void PuzzelRectange::FindNeighbour(vector<PuzzelRectange> &puzzels, int edgeNr, string name)
+void PuzzelRectange::FindNeighbour(vector<PuzzelRectange*> &puzzels, int edgeNr, string name)
 {
 	double best = DBL_MAX;
 	double bestSecond = DBL_MAX;
@@ -230,15 +198,16 @@ void PuzzelRectange::FindNeighbour(vector<PuzzelRectange> &puzzels, int edgeNr, 
 	unsigned char* c = Utils::GetCOlorFromTable(colorIdx);
 	Scalar color(c[2], c[1], c[0]);
 
-	for (vector<PuzzelRectange>::iterator p = puzzels.begin(); p != puzzels.end(); p++)
+	for (vector<PuzzelRectange*>::iterator p = puzzels.begin(); p != puzzels.end(); p++)
 	{
-		if (p._Ptr != this)
+		PuzzelRectange* puzzel = *p;
+		if (puzzel != this)
 		{
 			for (int i = 0; i < 4; i++)
 			{
-				double r = CompareFeatureVectors(edgeFeatures + edgeNr, p->edgeFeatures + i);
+				double r = CompareFeatureVectors(edgeFeatures + edgeNr, puzzel->edgeFeatures + i);
 				if(r < 9999999)
-					Utils::WriteColoredText("edge [" + to_string(p->id) + ":" + to_string(i) + "]  : " + to_string(r) + "\n", colorIdx);
+					Utils::WriteColoredText("edge [" + to_string(puzzel->id) + ":" + to_string(i) + "]  : " + to_string(r) + "\n", colorIdx);
 				if (r < best)
 				{
 					bestSecond = best;
@@ -247,7 +216,7 @@ void PuzzelRectange::FindNeighbour(vector<PuzzelRectange> &puzzels, int edgeNr, 
 
 					sideNr = i;
 					best = r;
-					bestP = p._Ptr;
+					bestP = puzzel;
 				}
 			}
 		}
@@ -273,42 +242,41 @@ void PuzzelRectange::FindNeighbour(vector<PuzzelRectange> &puzzels, int edgeNr, 
 	waitKey(1);
 }
 
-int squareDist(Point& p1, Point& p2)
+static int squareDist(Point& p1, Point& p2)
 {
 	int x = p1.x - p2.x;
 	int y = p1.y - p2.y;
 	return x * x + y * y;
 }
 
-vector<Point>* FindClosestContour(vector<vector<Point>*> contours, Point p)
+static vector<Point>* FindClosestContour(vector<vector<Point>*> contours, Point p)
 {
-	int dist = 999999;
-	vector<Point>* best = NULL;
+	int dist = INT32_MAX;
+	vector<Point>* best = nullptr;
 
-	for (auto iter = contours.begin(); iter != contours.end(); iter++)
+	for(vector<Point>* contour : contours)
 	{
-
-		Point cp = (*iter)->at(0);
+		Point cp = contour->at(0);
 		int d = squareDist(cp, p);
 		if (dist > d)
 		{
 			dist = d;
-			best = *iter;
+			best = contour;
 		}
 
-		Point cp2 = (*iter)->at((*iter)->size() - 1);
+		Point cp2 = contour->at(contour->size() - 1);
 		d = squareDist(cp2, p);
 		if (dist > d)
 		{
 			dist = d;
-			best = *iter;
+			best = contour;
 		}
 	}
 
 	return best;
 }
 
-int distSign(Vec3f &line, int x, int y)
+static int distSign(Vec3f &line, int x, int y)
 {
 	return line[0] * x + line[1] * y + line[2];
 }
@@ -342,16 +310,12 @@ float PuzzelRectange::computeBackgroundSimilarity(Vec3f circle, bool isinside)
 					count++;
 					score += tmp;
 				}
-				else
-				{
-					int tt = 0;
-				}
 			}
 		}
 	}
 	if (count == 0)
 		return 0.0;
-	score /= count;
+
 	return score;
 }
 
@@ -456,9 +420,6 @@ float PuzzelRectange::isNotBackground(Vec3b pixel)
 float PuzzelRectange::isBackground(Vec3b pixel)
 {
 	return backgroundSeparator->scorePoint(&pixel);
-	/*float colorUnderBackgroundProbability = qubeBackgroundHistogram[pixel[0] / QUBE_BIN][pixel[1] / QUBE_BIN][pixel[2] / QUBE_BIN];
-	float colorProbability = qubeHistogram[pixel[0] / QUBE_BIN][pixel[1] / QUBE_BIN][pixel[2] / QUBE_BIN];
-	return colorUnderBackgroundProbability / colorProbability * backgroundProbability;*/
 }
 
 //TODO: to moze byc keszowane pomiedzy kandydatami korzystajacemi z tego samego obszaru
@@ -474,11 +435,11 @@ float PuzzelRectange::scoreArea(BackgroundSeparator* separator)
 		{
 			if (isPointInside(j, i))
 			{
-				float xxx = (1 - separator->scorePoint(p_source));
-				if (!isnan(xxx))
+				float BnondebackgroundProbability = (1 - separator->scorePoint(p_source));
+				if (!isnan(BnondebackgroundProbability))
 				{
 					count++;
-					score += xxx;
+					score += BnondebackgroundProbability;
 				}
 			}
 		}

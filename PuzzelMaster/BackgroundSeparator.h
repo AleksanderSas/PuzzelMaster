@@ -2,7 +2,6 @@
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
-#include "IntrestingArea.h"
 
 using namespace std;
 using namespace cv;
@@ -10,13 +9,13 @@ using namespace cv;
 class BackgroundSeparator
 {
 public:
-	BackgroundSeparator(Mat& img, vector<IntrestingArea> puzzelCandidateAreas);
+	BackgroundSeparator(Mat& img, vector<Rect> puzzelCandidateAreas);
 	float scorePoint(Vec3b* pixel);
 
 private:
 	Mat& image;
 	void buildHistogram(function<float(Point2i&)> filter);
-	void initializeHistogram(vector<IntrestingArea>& puzzelCandidateArea);
+	void initializeHistogram(vector<Rect>& puzzelCandidateArea);
 	void tune();
 	void showImg(const char* name = "backgroundMap");
 	void normalizeHistograms(float *start, int pointCount);

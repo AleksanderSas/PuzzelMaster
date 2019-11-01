@@ -12,57 +12,77 @@
 using namespace cv;
 using namespace std;
 
-Mat src_gray;
-int thresh = 50;
-RNG rng(12345);
-void thresh_callback(int, void*);
-
 Mat src;
 PuzzelDetector* puzzelDetector;
 
-Mat ComposePuzzels(vector<PuzzelRectange> puzzels)
+Mat ComposePuzzels(vector<PuzzelRectange*>& puzzels)
 {
 	int maxCols = 0;
 	int maxRows = 0;
 
-	for (PuzzelRectange& puzzel : puzzels)
+	for (PuzzelRectange* puzzel : puzzels)
 	{
-		if (maxCols < puzzel.puzzelArea.cols)
+		if (maxCols < puzzel->puzzelArea.cols)
 		{
-			maxCols = puzzel.puzzelArea.cols;
+			maxCols = puzzel->puzzelArea.cols;
 		}
-		if (maxRows < puzzel.puzzelArea.rows)
+		if (maxRows < puzzel->puzzelArea.rows)
 		{
-			maxRows = puzzel.puzzelArea.rows;
+			maxRows = puzzel->puzzelArea.rows;
 		}
 	}
 
 	int puzzelsPerRow = sqrt(puzzels.size());
-	int rowNr = ceil(1.0 * puzzels.size() / puzzelsPerRow);
-	Mat mosaic = Mat::zeros(maxRows * rowNr, maxCols * puzzelsPerRow, puzzels[0].puzzelArea.type());
+	int rowNumber = ceil(1.0 * puzzels.size() / puzzelsPerRow);
+	Mat mosaic = Mat::zeros(maxRows * rowNumber, maxCols * puzzelsPerRow, puzzels[0]->puzzelArea.type());
 
 	int i = 0;
-	int row = 0;
+	int currentRow = 0;
 	Scalar textColor(0, 0, 0);
 	while (i < puzzels.size())
 	{
 		for (int k = 0; k < puzzelsPerRow && i < puzzels.size(); k++, i++)
 		{
-			Mat source = puzzels[i].puzzelArea;
+			Mat source = puzzels[i]->puzzelArea;
 			for (int y = 0; y < source.rows; y++)
 			{
 				for (int x = 0; x < source.cols; x++)
 				{
-					mosaic.at<Vec3b>(y + maxRows * row, x + maxCols * k) = source.at<Vec3b>(y, x);
+					mosaic.at<Vec3b>(y + maxRows * currentRow, x + maxCols * k) = source.at<Vec3b>(y, x);
 				}
 			}
-			putText(mosaic, to_string(puzzels[i].id), Point(maxCols * k + 10, maxRows * row + 10), HersheyFonts::FONT_HERSHEY_PLAIN, 1.0, textColor);
+			putText(mosaic, to_string(puzzels[i]->id), Point(maxCols * k + 10, maxRows * currentRow + 10), HersheyFonts::FONT_HERSHEY_PLAIN, 1.0, textColor);
 		}
-		row++;
+		currentRow++;
 	}
 	return mosaic;
 }
 
+void run()
+{
+	puzzelDetector = new PuzzelDetector(src);
+	puzzelDetector->cannEdgeThresh = 50;
+	auto puzzels = puzzelDetector->DetectPuzzels();
+
+	for (auto puzzel = puzzels.begin(); puzzel != puzzels.end(); puzzel++)
+	{
+		//puzzel->ReconstructBorder();
+		//puzzel->computeBackgroundColor();
+		(*puzzel)->ComputeEdgeFeatures();
+		(*puzzel)->PrintScores();
+
+
+	}
+	int puzzelNr = 7;
+	puzzels[puzzelNr]->FindNeighbour(puzzels, 0, "w0");
+	puzzels[puzzelNr]->FindNeighbour(puzzels, 1, "w1");
+	puzzels[puzzelNr]->FindNeighbour(puzzels, 2, "w2");
+	puzzels[puzzelNr]->FindNeighbour(puzzels, 3, "w3");
+	//imshow("source winner", puzzels[1].puzzelArea);
+
+	imshow("mosaic", ComposePuzzels(puzzels));
+	waitKey(1);
+}
 
 int main(int argc, char** argv)
 {
@@ -75,42 +95,10 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
-	puzzelDetector = new PuzzelDetector(src);
-
 	const char* source_window = "Source";
 	namedWindow(source_window);
 	imshow(source_window, src);
-	const int max_thresh = 255;
-	createTrackbar("Canny thresh:", source_window, &thresh, max_thresh, thresh_callback);
-	thresh_callback(0, 0);
+	run();
 	waitKey();
 	return 0;
-}
-void thresh_callback(int, void*)
-{
-	puzzelDetector->cannEdgeThresh = thresh;
-	auto puzzels = puzzelDetector->DetectPuzzels();
-
-	Scalar color1(120, 30, 210);
-	Scalar color2(220, 20, 10);
-
-	for (auto puzzel = puzzels.begin(); puzzel != puzzels.end(); puzzel++)
-	{
-		//puzzel->ReconstructBorder();
-		//puzzel->computeBackgroundColor();
-		string name("Pxx");
-		puzzel->ComputeEdgeFeatures(name + "_R");
-		puzzel->PrintScores();
-		
-		
-	}
-	int puzzelNr = 7;
-	puzzels[puzzelNr].FindNeighbour(puzzels, 0, "w0");
-	puzzels[puzzelNr].FindNeighbour(puzzels, 1, "w1");
-	puzzels[puzzelNr].FindNeighbour(puzzels, 2, "w2");
-	puzzels[puzzelNr].FindNeighbour(puzzels, 3, "w3");
-	//imshow("source winner", puzzels[1].puzzelArea);
-
-	imshow("mosaic", ComposePuzzels(puzzels));
-	waitKey(1);
 }

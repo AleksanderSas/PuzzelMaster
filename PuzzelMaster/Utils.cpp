@@ -31,14 +31,8 @@ static unsigned char availableColors[][3] =
 		{249, 141, 164},
 		{242, 242, 242}
 	};
+
 unsigned char* Utils::GetCOlorFromTable(unsigned int idx)
 {
-	/*CONSOLE_SCREEN_BUFFER_INFOEX info;
-	HANDLE hConsole = GetStdHandle(STD_INPUT_HANDLE);
-	GetConsoleScreenBufferInfoEx(hConsole, &info);
-	rgbExtractor color;
-	color.color = info.ColorTable[idx];
-*/
-
 	return availableColors[idx];
 }

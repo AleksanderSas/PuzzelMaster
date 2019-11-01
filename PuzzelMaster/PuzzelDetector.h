@@ -14,7 +14,7 @@ class PuzzelDetector
 {
 public: 
 	PuzzelDetector(Mat& input);
-	vector<PuzzelRectange> DetectPuzzels();
+	vector<PuzzelRectange*> DetectPuzzels();
 
 	int cannEdgeThresh = 70;
 	int dilation_size = 2;

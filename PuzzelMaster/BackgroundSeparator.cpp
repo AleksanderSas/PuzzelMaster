@@ -1,6 +1,6 @@
 #include "BackgroundSeparator.h"
 
-BackgroundSeparator::BackgroundSeparator(Mat& img, vector<IntrestingArea> puzzelCandidateAreas)
+BackgroundSeparator::BackgroundSeparator(Mat& img, vector<Rect> puzzelCandidateAreas)
 	:image(img)
 {
 	memset(qubeHistogram, 0, sizeof(float) * TOTAL_QUBE_SIZE);
@@ -17,17 +17,17 @@ BackgroundSeparator::BackgroundSeparator(Mat& img, vector<IntrestingArea> puzzel
 	waitKey(1);
 }
 
-bool isNotInsidePuzzelCandidate(Point2i &p, vector<IntrestingArea>& puzzelCandidateAreas)
+bool isNotInsidePuzzelCandidate(Point2i &p, vector<Rect>& puzzelCandidateAreas)
 {
 	 for (auto it = puzzelCandidateAreas.begin(); it != puzzelCandidateAreas.end(); it++)
 	 {
-		 if (it->OriginRectange.contains(p))
+		 if (it->contains(p))
 			 return false;
 	 }
 	 return true;
 }
 
-void BackgroundSeparator::initializeHistogram(vector<IntrestingArea>& puzzelCandidateArea)
+void BackgroundSeparator::initializeHistogram(vector<Rect>& puzzelCandidateArea)
 {
 	auto filter = [&](Point2i& p) {return isNotInsidePuzzelCandidate(p, puzzelCandidateArea)? 1.0 : 0.0; };
 	buildHistogram(filter);

@@ -1,5 +1,6 @@
 #include "PuzzelDetector.h"
 #include "IntrestingArea.h"
+#include "LineProcessor.h"
 
 PuzzelDetector::PuzzelDetector(Mat& input) : image(input), knn(input.cols, input.rows, MIN_SQUARE_DISTANCE, INIT_GRID_DENSITY)
 {
@@ -18,7 +19,7 @@ int P(Mat& edges, Point2f& p1, Point2f& p2, Point2f& current)
 	int nonePuzzelLen = 0;
 	int puzzelPoints = 0;
 
-	ProcessLine(p1, p2, [&](int x, int y)
+	LineProcessor::Process(p1, p2, [&](int x, int y)
 		{
 			if (edges.at<char>(y, x) == 0) //NOT puzzel part
 			{
@@ -69,60 +70,6 @@ void DetectJoint(Mat &puzzel, Mat &edges, Point2f &p1, Point2f &p2)
 
 bool vComparer(PuzzelRectange *i, PuzzelRectange *j) { return (j->score < i->score); };
 
-void ProcessOnePuzzel(IntrestingArea &ia, const char* name, KMeans& km, vector<PuzzelRectange> &returnBuffer)
-{
-	Mat greyMat, xDeriv, yDeriv, score;
-	cv::cvtColor(ia.AreaImage, greyMat, CV_BGR2GRAY);
-
-	int ddepth = CV_16S;
-	/// Gradient X
-	Sobel(greyMat, xDeriv, ddepth, 1, 0, 3);
-	/// Gradient Y
-	Sobel(greyMat, yDeriv, ddepth, 0, 1, 3);
-
-	double k = 0.04;
-
-	int maxCorners =  55;
-	vector<Point2f> corners;
-	double qualityLevel = 0.004;
-	double minDistance = 8;
-	int blockSize = 5, gradientSize = 5;
-	bool useHarrisDetector = false;
-
-	goodFeaturesToTrack(greyMat,
-		corners,
-		maxCorners,
-		qualityLevel,
-		minDistance
-		/*Mat(),
-		blockSize,
-		gradientSize,
-		useHarrisDetector,
-		k*/);
-	cout << "** Number of corners detected: " << corners.size() << endl;
-
-	/*for (auto it = corners.begin(); it != corners.end(); it++)
-	{
-		drawMarker(ia.AreaImage, *it, Scalar(123, 231, 90));
-	}*/
-
-	auto result = km.FindBestRectange(corners, xDeriv, yDeriv, ia);
-	
-	//sort(result->begin(), result->end(), vComparer);
-	
-	if (result != nullptr)
-	{
-		//for (auto p = corners.begin(); p != corners.end(); p++)
-		//{
-		//	drawMarker(puzzel, *p, Scalar(60, 160, 30));
-		//}
-
-		result->puzzelArea = ia.AreaImage;
-		result->contours = ia.contours;
-		returnBuffer.push_back(*result);
-	}
-}
-
 Mat PuzzelDetector::ComputeEdgeMap(vector<vector<Point>> &contours)
 {
 	Mat edgeMap = Mat::zeros(image.size(), CV_8U);
@@ -161,9 +108,10 @@ void PuzzelDetector::DrawContours(vector<vector<Point> > &contours, vector<Vec4i
 	}
 
 	imshow("Contours", contourDrawing);
+	waitKey(1);
 }
 
-vector<PuzzelRectange> PuzzelDetector::DetectPuzzels()
+vector<PuzzelRectange*> PuzzelDetector::DetectPuzzels()
 {
 	Mat canny_output;
 	Canny(image_gray, canny_output, cannEdgeThresh, cannEdgeThresh * 2);
@@ -174,13 +122,11 @@ vector<PuzzelRectange> PuzzelDetector::DetectPuzzels()
 		Point(dilation_size, dilation_size));
 	dilate(canny_output, canny2, element);
 
-	imshow("canny", canny_output);
 	vector<vector<Point> > *contours = new vector<vector<Point> >(); //TODO <<<<<<<<<<<<<<<<<<<<<<<<
 	vector<Vec4i> hierarchy;
 	findContours(canny_output, *contours, hierarchy, RETR_TREE, CHAIN_APPROX_NONE);
 
 	DrawContours(*contours, hierarchy);
-	waitKey(1);
 
 	Mat edgeMap = ComputeEdgeMap(*contours);
 
@@ -202,13 +148,22 @@ vector<PuzzelRectange> PuzzelDetector::DetectPuzzels()
 	}
 
 	vector<IntrestingArea> puzzelAreas = knn.GetPuzzels(image, edgeMap);
-	vector<PuzzelRectange> puzzels;
-	
-	for (int i = 0; i < puzzelAreas.size(); i++)
+	vector<PuzzelRectange*> puzzels;
+
+	std::vector<Rect> anotherMyObjectList;
+
+	for (IntrestingArea& ia : puzzelAreas)
 	{
-		string name = string("P") + to_string(i);
-		ProcessOnePuzzel(puzzelAreas[i], name.c_str(), knn, puzzels);
-		//imshow(name.c_str(), puzzelAreas[i].first);
+		anotherMyObjectList.push_back(ia.OriginRectange);
+	}
+
+	BackgroundSeparator* separator = new BackgroundSeparator(image, anotherMyObjectList);
+
+	for (IntrestingArea& ia : puzzelAreas)
+	{
+		PuzzelRectange* puzzel = ia.findPuzzel(separator);
+		if (puzzel != nullptr)
+			puzzels.push_back(puzzel);
 	}
 
 	return puzzels;
