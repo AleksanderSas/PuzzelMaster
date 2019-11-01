@@ -15,6 +15,9 @@ using namespace std;
 Mat src;
 PuzzelDetector* puzzelDetector;
 
+// D:\puzzle\2\test_2_2.jpg
+// D:\puzzle\test_3.jpg
+
 Mat ComposePuzzels(vector<PuzzelRectange*>& puzzels)
 {
 	int maxCols = 0;
@@ -73,7 +76,7 @@ void run()
 
 
 	}
-	int puzzelNr = 7;
+	int puzzelNr = 0;
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 0, "w0");
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 1, "w1");
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 2, "w2");

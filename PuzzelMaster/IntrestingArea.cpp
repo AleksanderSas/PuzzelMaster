@@ -33,12 +33,7 @@ PuzzelRectange* IntrestingArea::findPuzzel(BackgroundSeparator* separator)
 		corners,
 		maxCorners,
 		qualityLevel,
-		minDistance
-		/*Mat(),
-		blockSize,
-		gradientSize,
-		useHarrisDetector,
-		k*/);
+		minDistance);
 	cout << "** Number of corners detected: " << corners.size() << endl;
 
 	/*for (auto it = corners.begin(); it != corners.end(); it++)
@@ -47,9 +42,6 @@ PuzzelRectange* IntrestingArea::findPuzzel(BackgroundSeparator* separator)
 	}*/
 
 	auto result = FindBestRectange(corners, xDeriv, yDeriv, separator);
-
-	//sort(result->begin(), result->end(), vComparer);
-
 	if (result != nullptr)
 	{
 		//for (auto p = corners.begin(); p != corners.end(); p++)
@@ -66,7 +58,7 @@ PuzzelRectange* IntrestingArea::findPuzzel(BackgroundSeparator* separator)
 
 static bool hComparer(Point2f i, Point2f j) { return (i.x < j.x); }
 
-float crossProduct(Point2f& a, Point2f& centre, Point2f& b)
+static float crossProduct(Point2f& a, Point2f& centre, Point2f& b)
 {
 	int x1 = centre.x = a.x;
 	int y1 = centre.y = a.y;
@@ -77,27 +69,27 @@ float crossProduct(Point2f& a, Point2f& centre, Point2f& b)
 	return abs(x1 * y2 - x2 * y1);
 }
 
-double decide(Point2f& v1, Point2f& v2, double treshold = MIN_CROSS_PROD)
+static double decide(Point2f& v1, Point2f& v2, double treshold = MIN_CROSS_PROD)
 {
 	double result = abs(v1.cross(v2));
 	return result >= treshold ? result : 0.0;
 }
 
-float GetHarrisScore(Point2f& p, Mat& xDeriv, Mat& yDeriv, float k = 0.04)
+static float GetHarrisScore(Point2f& p, Mat& xDeriv, Mat& yDeriv, float k = 0.04)
 {
 	float dx = abs(xDeriv.at<short>(p));
 	float dy = abs(yDeriv.at<short>(p));
 	return 1.0 * dx * dy - k * (dx - dy) * (dx - dy);
 }
 
-Point2f GetVector(Point2f& a, Point2f& b)
+static Point2f GetVector(Point2f& a, Point2f& b)
 {
 	auto x = a.x - b.x;
 	auto y = a.y - b.y;
 	return Point2f(x, y);
 }
 
-Point2f GetNormalizedVector(Point2f& a, Point2f& b)
+static Point2f GetNormalizedVector(Point2f& a, Point2f& b)
 {
 	auto x = a.x - b.x;
 	auto y = a.y - b.y;
@@ -107,23 +99,23 @@ Point2f GetNormalizedVector(Point2f& a, Point2f& b)
 	return Point2f(x, y);
 }
 
-float IsMoreOrLessRectange(PuzzelRectange* candidate, Mat& xDeriv, Mat& yDeriv)
+static float IsMoreOrLessRectange(PuzzelRectange* candidate, Mat& xDeriv, Mat& yDeriv)
 {
 	Point2f v1 = GetNormalizedVector(candidate->left, candidate->upper);
 	Point2f v2 = GetNormalizedVector(candidate->upper, candidate->right);
 	Point2f v3 = GetNormalizedVector(candidate->right, candidate->lower);
 	Point2f v4 = GetNormalizedVector(candidate->lower, candidate->left);
 
-	double measure = decide(v1, v2) * decide(v2, v3) * decide(v3, v4) * decide(v4, v1);
-	candidate->recScore = measure;
-	double measure2 = GetHarrisScore(candidate->left, xDeriv, yDeriv)
+	double rectangularityMeasure = decide(v1, v2) * decide(v2, v3) * decide(v3, v4) * decide(v4, v1);
+	candidate->recScore = rectangularityMeasure;
+	double harrisMeasure = GetHarrisScore(candidate->left, xDeriv, yDeriv)
 		* GetHarrisScore(candidate->lower, xDeriv, yDeriv)
 		* GetHarrisScore(candidate->right, xDeriv, yDeriv)
 		* GetHarrisScore(candidate->upper, xDeriv, yDeriv);
-	measure2 = sqrt(sqrt(sqrt(measure2)));
-	candidate->interestScore = measure2;
+	harrisMeasure = sqrt(sqrt(sqrt(harrisMeasure)));
+	candidate->interestScore = harrisMeasure;
 
-	if (measure > 0.1)
+	if (rectangularityMeasure > 0.1)
 	{
 		Point2f v1 = GetVector(candidate->left, candidate->upper);
 		Point2f v2 = GetVector(candidate->upper, candidate->right);
@@ -131,19 +123,19 @@ float IsMoreOrLessRectange(PuzzelRectange* candidate, Mat& xDeriv, Mat& yDeriv)
 		int a = v1.x * v1.x + v1.y * v1.y;
 		int b = v2.x * v2.x + v2.y * v2.y;
 
-		int rectangeFactor = 2;
-		if (1.0 * a / b > rectangeFactor || 1.0 * b / a > rectangeFactor) //it not rectange
+		int rectangleFactor = 2;
+		if (1.0 * a / b > rectangleFactor || 1.0 * b / a > rectangleFactor) //it not rectange
 			return 0.0;
 
 		double area = sqrt(sqrt(a * b));
 		candidate->areaScore = area;
-		return area * measure;
+		return area * rectangularityMeasure;
 	}
 
 	return 0.0;
 }
 
-void UpdateHitMetric(Mat& edgeMap, int xPos, int yPos, int& hit, int& miss)
+static void UpdateHitMetric(Mat& edgeMap, int xPos, int yPos, int& hit, int& miss)
 {
 	if (edgeMap.at<uchar>(Point(xPos, yPos)))
 	{
@@ -155,7 +147,7 @@ void UpdateHitMetric(Mat& edgeMap, int xPos, int yPos, int& hit, int& miss)
 	}
 }
 
-void ComputeEdgeHits(Mat& edgeMap, PuzzelRectange* puzzel, int& hit, int& miss)
+static void ComputeEdgeHits(Mat& edgeMap, PuzzelRectange* puzzel, int& hit, int& miss)
 {
 	auto counter = [&](int x, int y) {UpdateHitMetric(edgeMap, x, y, hit, miss); return true; };
 
@@ -179,9 +171,9 @@ PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Mat& 
 		{
 			int dx = left->x - right->x;
 			int dy = left->y - right->y;
-			if (dx * dx + dy + dy < 40 * 40)
+			if (dx * dx + dy + dy < MIN_RECT_DIAGONAL)
 			{
-				//continue;
+				continue;
 			}
 			for (vector<Point2f>::iterator upper = left + 1; upper != right; upper++)
 			{
@@ -200,23 +192,19 @@ PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Mat& 
 
 				for (vector<Point2f>::iterator lower = left + 1; lower != right; lower++)
 				{
-					if (lower->x == upper->x && lower->y == upper->y)
+					if (lower == upper || lower->y > upper->y)
 					{
 						continue;
 					}
 
-					if (lower->y > upper->y)
-					{
-						continue;
-					}
 					PuzzelRectange* candidate = new PuzzelRectange(*left, *right, *lower, *upper, counter++, separator);
 					candidate->puzzelArea = AreaImage;
 
-					double r = IsMoreOrLessRectange(candidate, xDeriv, yDeriv);
-					if (r > 0.0)
+					double totalScore = IsMoreOrLessRectange(candidate, xDeriv, yDeriv);
+					if (totalScore > 0.0)
 					{
 						float noneBackgroundScore = candidate->scoreArea(separator);
-						//r *= noneBackgroundScore;
+						//totalScore *= noneBackgroundScore;
 						int hit = 0;
 						int miss = 0;
 						ComputeEdgeHits(EdgeMap, candidate, hit, miss);
@@ -230,8 +218,8 @@ PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Mat& 
 						{
 							continue;
 						}
-						r *= candidate->hitScore;
-						candidate->score = r;
+						totalScore *= candidate->hitScore;
+						candidate->score = totalScore;
 						if (bestRects == nullptr || candidate->score > bestRects->score)
 						{
 							if (bestRects != nullptr)
@@ -241,11 +229,6 @@ PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Mat& 
 							bestRects = candidate;
 						}
 					}
-					/*if (r > best.score)
-					{
-						best = candidate;
-						best.score = r;
-					}*/
 				}
 			}
 		}

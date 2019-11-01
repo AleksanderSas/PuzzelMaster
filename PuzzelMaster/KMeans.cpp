@@ -26,13 +26,11 @@ KMeans::KMeans(int heigth, int width, int MIN_SQUARE_DISTANCE, int INIT_GRID_DEN
 			c2->Point.y = 50 + stepY * y;
 
 			centres.push_back(c2);
-
 		}
 	}
-
 }
 
-inline int FindNearestCentre(cv::Point p, vector<Centre*> centres)
+inline int FindNearestCentre(cv::Point p, vector<Centre*>& centres)
 {
 	Centre* nearest = NULL;
 	int distance = INT_MAX;
@@ -58,12 +56,86 @@ inline int FindNearestCentre(cv::Point p, vector<Centre*> centres)
 
 int KMeans::Pass(vector<vector<cv::Point> > *contours)
 {
-	for (vector<Centre*>::iterator centre = centres.begin(); centre != centres.end(); centre++)
+	ResetKMeansCentries();
+	MatchContoursToCentries(contours);
+	int change = UpdateCentries();
+	MergeTooCloseCentries();
+
+	return change;
+}
+
+void KMeans::MergeTooCloseCentries()
+{
+	vector<int> toRemove;
+	for (int centre1 = 0; centre1 + 1 != centres.size(); centre1++)
 	{
-		(*centre)->BelongingPoints.clear();
-		(*centre)->CapturedContours.clear();
+		for (int centre2 = centre1 + 1; centre2 + 1 != centres.size(); centre2++)
+		{
+			auto p1 = centres[centre1]->Point;
+			auto p2 = centres[centre2]->Point;
+			int xDist = (p1.x - p2.x);
+			int yDist = (p1.y - p2.y);
+
+			int newDist = xDist * xDist + yDist * yDist;
+
+			if (newDist < MIN_SQUARE_DISTANCE &&
+				std::find(toRemove.begin(), toRemove.end(), centre2) == toRemove.end()
+				&& std::find(toRemove.begin(), toRemove.end(), centre1) == toRemove.end())
+			{
+				toRemove.push_back(centre2);
+			}
+		}
 	}
 
+	std::sort(toRemove.begin(), toRemove.end());
+
+	for (auto it = toRemove.rbegin(); it != toRemove.rend(); it++)
+	{
+		centres.erase(centres.begin() + *it);
+	}
+}
+
+int KMeans::UpdateCentries()
+{
+	int change = 0;
+	vector< vector<Centre*>::iterator> toRemove2;
+	for (vector<Centre*>::iterator centre = centres.begin(); centre != centres.end(); centre++)
+	{
+		int oldX = (*centre)->Point.x;
+		int oldY = (*centre)->Point.y;
+
+		for (vector<Point*>::iterator point = (*centre)->BelongingPoints.begin(); point != (*centre)->BelongingPoints.end(); point++)
+		{
+			(*centre)->Point.x += (*point)->x;
+			(*centre)->Point.y += (*point)->y;
+		}
+
+		unsigned int size = (*centre)->BelongingPoints.size();
+		if (size > 0)
+		{
+			(*centre)->Point.x /= size;
+			(*centre)->Point.y /= size;
+
+			int dy = ((*centre)->Point.y - oldY);
+			int dx = ((*centre)->Point.x - oldX);
+			int d = dy * dy + dx * dx;
+			change += d;
+		}
+		else
+		{
+			toRemove2.push_back(centre);
+		}
+	}
+
+	for (auto it = toRemove2.rbegin(); it != toRemove2.rend(); it++)
+	{
+		centres.erase(*it);
+	}
+	return change;
+}
+
+void KMeans::MatchContoursToCentries(std::vector<std::vector<cv::Point>>* contours)
+{
 	int* scores = new int[centres.size()];
 	for (vector<vector<cv::Point>>::iterator contour = contours->begin(); contour != contours->end(); contour++)
 	{
@@ -84,7 +156,6 @@ int KMeans::Pass(vector<vector<cv::Point> > *contours)
 			}
 		}
 
-		//vector<cv::Point>* xxx = contour._Ptr;
 		Centre* c = centres[idx];
 		c->CapturedContours.push_back(contour._Ptr);
 		for (vector<cv::Point>::iterator point = contour->begin(); point != contour->end(); point++)
@@ -93,77 +164,15 @@ int KMeans::Pass(vector<vector<cv::Point> > *contours)
 			c->BelongingPoints.push_back(p);
 		}
 	}
+}
 
-	int change = 0;
-
-	vector< vector<Centre*>::iterator> toRemove;
+void KMeans::ResetKMeansCentries()
+{
 	for (vector<Centre*>::iterator centre = centres.begin(); centre != centres.end(); centre++)
 	{
-		int oldX = (*centre)->Point.x;
-		int oldY = (*centre)->Point.y;
-
-		for (vector<Point*>::iterator point = (*centre)->BelongingPoints.begin(); point != (*centre)->BelongingPoints.end(); point++)
-		{
-			(*centre)->Point.x += (*point)->x;
-			(*centre)->Point.y += (*point)->y;
-		}
-
-		int size = (*centre)->BelongingPoints.size();
-		if (size > 0)
-		{
-			(*centre)->Point.x /= size;
-			(*centre)->Point.y /= size;
-
-			int dy = ((*centre)->Point.y - oldY);
-			int dx = ((*centre)->Point.x - oldX);
-			int d = dy * dy + dx * dx;
-			 change += d;
-			 if (change < 0)
-			 {
-				 int t = 0;
-			 }
-		}
-		else
-		{
-			toRemove.push_back(centre);
-		}
-
+		(*centre)->BelongingPoints.clear();
+		(*centre)->CapturedContours.clear();
 	}
-
-	for (auto it = toRemove.rbegin(); it != toRemove.rend(); it++)
-	{
-		centres.erase(*it);
-	}
-	toRemove.clear();
-
-	vector<int> setToRemove;
-	for (int centre1 = 0; centre1 + 1 != centres.size(); centre1++)
-	{
-		for (int centre2 = centre1 + 1; centre2 + 1 != centres.size(); centre2++)
-		{
-			auto p1 = centres[centre1]->Point;
-			auto p2 = centres[centre2]->Point;
-			int xDist = (p1.x - p2.x);
-			int yDist = (p1.y - p2.y);
-			
-			int newDist = xDist * xDist + yDist * yDist;
-
-			if (newDist < MIN_SQUARE_DISTANCE &&
-				std::find(setToRemove.begin(), setToRemove.end(), centre2) == setToRemove.end()
-				&& std::find(setToRemove.begin(), setToRemove.end(), centre1) == setToRemove.end())
-			{
-				setToRemove.push_back(centre2);
-			}
-		}
-	}
-
-	std::sort(setToRemove.begin(), setToRemove.end());
-
-	for (auto it = setToRemove.rbegin(); it != setToRemove.rend(); it++)
-	{
-		centres.erase(centres.begin() + *it);
-	}
-	return change;
 }
 
 unique_ptr< vector<cv::Point>> MergeContours(vector<vector<cv::Point>*> *contours)
@@ -178,11 +187,11 @@ unique_ptr< vector<cv::Point>> MergeContours(vector<vector<cv::Point>*> *contour
 
 void GetCloseContours(Centre* centre, vector<vector<cv::Point>*> *buffer)
 {
-	int removed = 0;
-	int count = 0;
+	unsigned int removed = 0;
+	unsigned int count = 0;
 	double dist = 0.0;
 	double* dists = new double[centre->CapturedContours.size()];
-	for (int i = 0; i < centre->CapturedContours.size(); i++)
+	for (unsigned int i = 0; i < centre->CapturedContours.size(); i++)
 	{
 		int x = 0;
 		int y = 0;
@@ -202,7 +211,7 @@ void GetCloseContours(Centre* centre, vector<vector<cv::Point>*> *buffer)
 		int dy = y - centre->Point.y;
 
 		dist += hypot(dx, dy);
-		dists[i] = hypot(dx, dy);
+		dists[i] = (double)hypot(dx, dy);
 	}
 
 	dist /= centre->CapturedContours.size();

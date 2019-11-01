@@ -10,8 +10,6 @@ BackgroundSeparator::BackgroundSeparator(Mat& img, vector<Rect> puzzelCandidateA
 	for (int i = 1; i <= 15; i++)
 	{
 		tune();
-		/*showImg(("backgrounfMap_" + to_string(i)).c_str());
-		waitKey(1);*/
 	}
 	showImg("backgrounfMap");
 	waitKey(1);
@@ -44,11 +42,8 @@ void BackgroundSeparator::buildHistogram(function<float(Point2i&)> filter)
 		{
 			Point2i point(j, i);
 			float tmp = filter(point);
-			//if (filter(point))
-			{
-				getQubeBackgroundBin(p) += tmp;
-				c += tmp;
-			}
+			getQubeBackgroundBin(p) += tmp;
+			c += tmp;
 			getQubeColorBin(p) += 1;
 		}
 	}
@@ -59,39 +54,39 @@ void BackgroundSeparator::buildHistogram(function<float(Point2i&)> filter)
 
 void BackgroundSeparator::tune()
 {
-	Mat img = getMatchMap();
-	blur(img, img, Size(3, 3));
+	Mat probablityMap = getMatchMap();
+	blur(probablityMap, probablityMap, Size(3, 3));
 	auto filter = [&](Point2i& p) 
 	{
-		unsigned char ppp = img.at<unsigned char>(p);
-		if (ppp > 160) return 1.0;
-		if (ppp < 80) return 0.0;
-		return 0.4 + 0.35 * (ppp - 80) / 80;
+		unsigned char backgProbability = probablityMap.at<unsigned char>(p);
+		if (backgProbability > 160) return 1.0;
+		if (backgProbability < 80) return 0.0;
+		return 0.4 + 0.35 * (backgProbability - 80) / 80;
 	};
 	buildHistogram(filter);
 }
 
 Mat BackgroundSeparator::getMatchMap()
 {
-	Mat img = Mat::zeros(image.rows, image.cols, CV_8UC1);
+	Mat probablityMap = Mat::zeros(image.rows, image.cols, CV_8UC1);
 	Vec3b* p_source;
 	unsigned char* p_dest;
 	for (int i = 0; i < image.rows; ++i)
 	{
 		p_source = image.ptr<Vec3b>(i);
-		p_dest = img.ptr<unsigned char>(i);
+		p_dest = probablityMap.ptr<unsigned char>(i);
 		for (int j = 0; j < image.cols; ++j, ++p_source, ++p_dest)
 		{
 			*p_dest = scorePoint(p_source) * 255;
 		}
 	}
-	return img;
+	return probablityMap;
 }
 
 void BackgroundSeparator::showImg(const char* name)
 {
-	Mat img = getMatchMap();
-	imshow(name, img);
+	Mat probablityMap = getMatchMap();
+	imshow(name, probablityMap);
 }
 
 float& BackgroundSeparator::getQubeBackgroundBin(Vec3b *p)

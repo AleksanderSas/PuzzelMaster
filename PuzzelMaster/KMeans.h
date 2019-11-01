@@ -25,19 +25,19 @@ public:
 	int Pass(vector<vector<cv::Point> > *contours);
 	void DrawBoxes(Mat& img);
 	vector<Centre*> centres;
-	
-	vector<IntrestingArea> GetPuzzels(Mat &img, Mat &edgeMap);
-	PuzzelRectange* FindBestRectange(vector<Point2f> &corners, Mat& xDeriv, Mat& yDeriv, IntrestingArea& ia);
-	
+	vector<IntrestingArea> GetPuzzels(Mat &img, Mat &edgeMap);	
 
 private:
+	void MergeTooCloseCentries();
+	int UpdateCentries();
+	void MatchContoursToCentries(std::vector<std::vector<cv::Point>>* contours);
+	void ResetKMeansCentries();
+
 	int heigth;
 	int width;
 
 	int MIN_SQUARE_DISTANCE = 1600;
 	int INIT_GRID_DENSITY = 10;
 };
-
-void ComputeEdgeHits(Mat& edgeMap, PuzzelRectange& puzzel, int& hit, int& miss);
 #endif  
 

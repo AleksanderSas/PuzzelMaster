@@ -38,10 +38,10 @@ Point2f LinearComb(Point2f p1, Point2f p2, float p1Weigth)
 
 void ComputeFeatureVector(Mat &m, Point2f& startCorner, Point2f& endCorner, Point2f& startBeckSide, Point2f& endBeckSide, edgeFeature* e)
 {
-	float factor = 0.95;
+	float factor = 0.95f;
 	Point2f start = LinearComb(startCorner, startBeckSide, factor);
 	Point2f end = LinearComb(endCorner, endBeckSide, factor);
-	e->len = hypot(start.x - end.x, start.y - end.y);;
+	e->len = (int)hypot(start.x - end.x, start.y - end.y);;
 
 	int start2jointDist = hypot(e->joint[0] - start.x, e->joint[1] - start.y);
 	int joint2endDist = hypot(e->joint[0] - end.x, e->joint[1] - end.y);
