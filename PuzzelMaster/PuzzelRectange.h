@@ -30,7 +30,6 @@ public:
 	double interestScore;
 	double areaScore;
 	double noneBackgroundScore;
-	vector<vector<Point>*> *contours;
 	int id;
 	bool isPointInside(int x, int y);
 	Mat background;

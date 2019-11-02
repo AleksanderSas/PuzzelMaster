@@ -1,10 +1,9 @@
 #include "IntrestingArea.h"
 #include "LineProcessor.h"
 
-IntrestingArea:: IntrestingArea(Mat areaImage, Mat edgeMap, vector<vector<cv::Point>*> *contours, Rect originRectange,int id):
+IntrestingArea:: IntrestingArea(Mat areaImage, Mat edgeMap, Rect originRectange,int id):
 	AreaImage(areaImage), 
 	EdgeMap(edgeMap), 
-	contours(contours),
 	OriginRectange(originRectange),
 	id(id)
 {}
@@ -20,14 +19,10 @@ PuzzelRectange* IntrestingArea::findPuzzel(BackgroundSeparator* separator)
 	/// Gradient Y
 	Sobel(greyMat, yDeriv, ddepth, 0, 1, 3);
 
-	double k = 0.04;
-
 	int maxCorners = 35;
 	vector<Point2f> corners;
 	double qualityLevel = 0.004;
 	double minDistance = 8;
-	int blockSize = 5, gradientSize = 5;
-	bool useHarrisDetector = false;
 
 	goodFeaturesToTrack(greyMat,
 		corners,
@@ -50,7 +45,6 @@ PuzzelRectange* IntrestingArea::findPuzzel(BackgroundSeparator* separator)
 		//}
 
 		result->puzzelArea = AreaImage;
-		result->contours = contours;
 		return result;
 	}
 	return nullptr;
