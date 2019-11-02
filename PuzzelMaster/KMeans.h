@@ -22,6 +22,7 @@ class KMeans
 {
 public:
 	KMeans(int heigth, int width, int MIN_SQUARE_DISTANCE = 1600, int INIT_GRID_DENSITY = 10);
+	~KMeans();
 	int Pass(vector<vector<cv::Point> > *contours);
 	void DrawBoxes(Mat& img);
 	vector<Centre*> centres;

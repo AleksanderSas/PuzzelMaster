@@ -122,7 +122,8 @@ vector<PuzzelRectange*> PuzzelDetector::DetectPuzzels()
 		Point(dilation_size, dilation_size));
 	dilate(canny_output, canny2, element);
 
-	vector<vector<Point> > *contours = new vector<vector<Point> >(); //TODO <<<<<<<<<<<<<<<<<<<<<<<<
+	//TODO: delete
+	vector<vector<Point> > *contours = new vector<vector<Point>>(); 
 	vector<Vec4i> hierarchy;
 	findContours(canny_output, *contours, hierarchy, RETR_TREE, CHAIN_APPROX_NONE);
 
@@ -157,6 +158,7 @@ vector<PuzzelRectange*> PuzzelDetector::DetectPuzzels()
 		anotherMyObjectList.push_back(ia.OriginRectange);
 	}
 
+	//TODO: delete
 	BackgroundSeparator* separator = new BackgroundSeparator(image, anotherMyObjectList);
 
 	for (IntrestingArea& ia : puzzelAreas)

@@ -30,6 +30,14 @@ KMeans::KMeans(int heigth, int width, int MIN_SQUARE_DISTANCE, int INIT_GRID_DEN
 	}
 }
 
+KMeans::~KMeans()
+{
+	for (Centre* c: centres)
+	{
+		delete c;
+	}
+}
+
 inline int FindNearestCentre(cv::Point p, vector<Centre*>& centres)
 {
 	Centre* nearest = NULL;
@@ -91,14 +99,16 @@ void KMeans::MergeTooCloseCentries()
 
 	for (auto it = toRemove.rbegin(); it != toRemove.rend(); it++)
 	{
-		centres.erase(centres.begin() + *it);
+		auto centreToRemove = centres.begin() + *it;
+		delete *centreToRemove;
+		centres.erase(centreToRemove);
 	}
 }
 
 int KMeans::UpdateCentries()
 {
 	int change = 0;
-	vector< vector<Centre*>::iterator> toRemove2;
+	vector< vector<Centre*>::iterator> toRemove;
 	for (vector<Centre*>::iterator centre = centres.begin(); centre != centres.end(); centre++)
 	{
 		int oldX = (*centre)->Point.x;
@@ -123,12 +133,13 @@ int KMeans::UpdateCentries()
 		}
 		else
 		{
-			toRemove2.push_back(centre);
+			toRemove.push_back(centre);
 		}
 	}
 
-	for (auto it = toRemove2.rbegin(); it != toRemove2.rend(); it++)
+	for (auto it = toRemove.rbegin(); it != toRemove.rend(); it++)
 	{
+		delete **it;
 		centres.erase(*it);
 	}
 	return change;
@@ -164,6 +175,7 @@ void KMeans::MatchContoursToCentries(std::vector<std::vector<cv::Point>>* contou
 			c->BelongingPoints.push_back(p);
 		}
 	}
+	delete [] scores;
 }
 
 void KMeans::ResetKMeansCentries()
@@ -185,55 +197,55 @@ unique_ptr< vector<cv::Point>> MergeContours(vector<vector<cv::Point>*> *contour
 	return ptr;
 }
 
+static double ComputeContourToCentreDisatnce(Centre* centre, vector<cv::Point>* contour)
+{
+	int x = 0;
+	int y = 0;
+
+	for (vector<cv::Point>::iterator point = contour->begin(); point != contour->end(); point++)
+	{
+		x += point->x;
+		y += point->y;
+	}
+
+	x /= contour->size();
+	y /= contour->size();
+
+	int dx = x - centre->Point.x;
+	int dy = y - centre->Point.y;
+
+	return hypot(dx, dy);
+}
+
 void GetCloseContours(Centre* centre, vector<vector<cv::Point>*> *buffer)
 {
-	unsigned int removed = 0;
-	unsigned int count = 0;
-	double dist = 0.0;
+	double avgDist = 0.0;
 	double* dists = new double[centre->CapturedContours.size()];
 	for (unsigned int i = 0; i < centre->CapturedContours.size(); i++)
 	{
-		int x = 0;
-		int y = 0;
-
 		auto contour = centre->CapturedContours[i];
-		count += contour->size();
-		for(vector<cv::Point>::iterator point = contour->begin(); point != contour->end(); point++)
-		{
-			x += point->x;
-			y += point->y;
-		}
-
-		x /= contour->size();
-		y /= contour->size();
-
-		int dx = x - centre->Point.x;
-		int dy = y - centre->Point.y;
-
-		dist += hypot(dx, dy);
-		dists[i] = (double)hypot(dx, dy);
+		double dist = ComputeContourToCentreDisatnce(centre, contour);
+		avgDist += dist;
+		dists[i] = dist;
 	}
 
-	dist /= centre->CapturedContours.size();
-	float var = 0;
+	avgDist /= centre->CapturedContours.size();
+	float variance = 0;
 	for (int i = 0; i < centre->CapturedContours.size(); i++)
 	{
-		var += (dist - dists[i]) * (dist - dists[i]);
+		variance += (avgDist - dists[i]) * (avgDist - dists[i]);
 	}
-	var /= centre->CapturedContours.size();
-	var = 1 * sqrt(var);
+	variance /= centre->CapturedContours.size();
+	variance = sqrt(variance);
 
 	for (int i = 0; i < centre->CapturedContours.size(); i++)
 	{
-		if (dists[i] < dist + var || centre->CapturedContours.size() < 7 )
+		if (dists[i] < avgDist + variance || centre->CapturedContours.size() < 7 )
 		{
 			buffer->push_back(centre->CapturedContours[i]);
 		}
-		else
-		{
-			removed++;
-		}
 	}
+	delete [] dists;
 }
 
 void KMeans::DrawBoxes(Mat& img)
@@ -282,13 +294,19 @@ vector<IntrestingArea> KMeans::GetPuzzels(Mat &img, Mat& edgeMap)
 	int id = 0;
 	for (vector<Centre*>::iterator centre = centres.begin(); centre != centres.end(); centre++)
 	{
+		//TODO: delete
 		vector<vector<cv::Point>*> *buffer = new vector<vector<cv::Point>*>();
 		GetCloseContours(*centre, buffer);
 
 		auto mergedContour = MergeContours(buffer);
 		auto box = minAreaRect(*mergedContour);
 		int padding = 10;
-		puzzelAreas.push_back(IntrestingArea(Extract(box, img, padding), Extract(box, edgeMap, padding), boundingRect(*mergedContour), id++));
+		puzzelAreas.push_back(
+							IntrestingArea(Extract(box, img, padding), 
+							Extract(box, edgeMap, padding), 
+							boundingRect(*mergedContour),
+							id++)
+		);
 	}
 	return puzzelAreas;
 }
