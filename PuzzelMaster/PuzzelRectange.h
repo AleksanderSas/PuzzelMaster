@@ -20,7 +20,7 @@ struct edgeFeature
 class PuzzelRectange
 {
 public:
-	PuzzelRectange(Point2f& left, Point2f& right, Point2f& lower, Point2f& upper, int id, BackgroundSeparator* backgroundSeparator);
+	PuzzelRectange(Point2f& left, Point2f& right, Point2f& lower, Point2f& upper, int id, BackgroundSeparator* backgroundSeparator, RotatedRect box);
 
 	Point2f left, right, lower, upper;
 	Mat puzzelArea;
@@ -55,6 +55,9 @@ public:
 	float isBackground(Vec3b pixel);
 	float isNotBackground(Vec3b pixel);
 	Mat GetContours();
+	RotatedRect box;
+
+	void MarkEdgesOnOriginImage(Mat& image);
 
 #if 1
 	#define MIN_LINE_LEN 18
@@ -65,6 +68,6 @@ public:
 	#define LINE_TRESHOLD 15
 	#define MAX_LINE_GAP 6
 #endif
-
+#define AREA_PADDING 10
 };
 

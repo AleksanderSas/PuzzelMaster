@@ -4,6 +4,8 @@
 #include "Utils.h"
 #include "LineProcessor.h"
 
+#define M_PI 3.14159265358979323846
+
 // [A, B, C]
 Vec3f ParametrizeLine(Point2f& c1, Point2f& c2)
 {
@@ -14,8 +16,15 @@ Vec3f ParametrizeLine(Point2f& c1, Point2f& c2)
 	return p;
 }
 
-PuzzelRectange::PuzzelRectange(Point2f& left, Point2f& right, Point2f& lower, Point2f& upper, int id, BackgroundSeparator* _backgroundSeparator)
-	: left(left), right(right), lower(lower), upper(upper), id(id), backgroundSeparator(_backgroundSeparator)
+PuzzelRectange::PuzzelRectange(
+	Point2f& left, 
+	Point2f& right, 
+	Point2f& lower, 
+	Point2f& upper, 
+	int id, 
+	BackgroundSeparator* _backgroundSeparator,
+	RotatedRect box)
+	: left(left), right(right), lower(lower), upper(upper), id(id), backgroundSeparator(_backgroundSeparator), box(box)
 {
 	lineParameters_left_upper = ParametrizeLine(left, upper);
 	lineParameters_upper_rigth = ParametrizeLine(upper, right);
@@ -462,4 +471,35 @@ void PuzzelRectange::PrintScores()
 		<< "  area score=" << areaScore
 		<< "  bckg score=" << noneBackgroundScore
 		<< endl;
+}
+
+static Point2f TransformPoint(Point2f p, RotatedRect rect)
+{
+	float angle = rect.angle;
+	double radians = 2 * M_PI * angle / 360;
+	float _sin = sin(radians);
+	float _cos = cos(radians);
+
+	p.x -= rect.size.width / 2 + AREA_PADDING;
+	p.y -= rect.size.height / 2 + AREA_PADDING;
+
+	Point2f rotatedPoint(
+		_cos * p.x - _sin * p.y,
+		_sin * p.x + _cos * p.y);
+
+	rotatedPoint += rect.center;
+	return rotatedPoint;
+}
+
+void PuzzelRectange::MarkEdgesOnOriginImage(Mat& image)
+{
+	Point2f p1 = TransformPoint(left, box);
+	Point2f p2 = TransformPoint(right, box);
+	Point2f p3 = TransformPoint(upper, box);
+	Point2f p4 = TransformPoint(lower, box);
+
+	drawMarker(image, p1, Scalar(123, 231, 90));
+	drawMarker(image, p2, Scalar(123, 231, 90));
+	drawMarker(image, p3, Scalar(123, 231, 90));
+	drawMarker(image, p4, Scalar(123, 231, 90));
 }

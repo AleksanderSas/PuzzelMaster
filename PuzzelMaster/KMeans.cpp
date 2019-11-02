@@ -272,14 +272,9 @@ Mat Extract(RotatedRect rect, Mat &src, int extendBySize = 0)
 	Mat M, rotated, cropped;
 	float angle = rect.angle;
 	Size rect_size = rect.size;
-	if (rect.angle < -45.) {
-		angle += 90.0;
-		swap(rect_size.width, rect_size.height);
-	}
 	M = getRotationMatrix2D(rect.center, angle, 1.0);
 	warpAffine(src.clone(), rotated, M, src.size(), INTER_CUBIC);
 
-	rect.center.x -= extendBySize;
 	rect_size.width += extendBySize * 2;
 	rect_size.height += extendBySize * 2;
 
@@ -300,12 +295,12 @@ vector<IntrestingArea> KMeans::GetPuzzels(Mat &img, Mat& edgeMap)
 
 		auto mergedContour = MergeContours(buffer);
 		auto box = minAreaRect(*mergedContour);
-		int padding = 10;
 		puzzelAreas.push_back(
-							IntrestingArea(Extract(box, img, padding), 
-							Extract(box, edgeMap, padding), 
+							IntrestingArea(Extract(box, img, AREA_PADDING),
+							Extract(box, edgeMap, AREA_PADDING),
 							boundingRect(*mergedContour),
-							id++)
+							id++,
+							box)
 		);
 	}
 	return puzzelAreas;

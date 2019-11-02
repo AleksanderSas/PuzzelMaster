@@ -14,7 +14,7 @@ using namespace cv;
 class IntrestingArea
 {
 public:
-	IntrestingArea(Mat areaImage, Mat edgeMap, Rect originRectange, int id);
+	IntrestingArea(Mat areaImage, Mat edgeMap, Rect originRectange, int id, RotatedRect box);
 	PuzzelRectange* findPuzzel(BackgroundSeparator* separator);
 
 	Rect OriginRectange;
@@ -25,6 +25,7 @@ private:
 	int id;
 	Mat AreaImage;
 	Mat EdgeMap;
+	RotatedRect box;
 };
 
 #define MIN_CROSS_PROD 0.997

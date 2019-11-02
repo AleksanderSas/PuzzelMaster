@@ -67,15 +67,15 @@ void run()
 	puzzelDetector->cannEdgeThresh = 50;
 	auto puzzels = puzzelDetector->DetectPuzzels();
 
-	for (auto puzzel = puzzels.begin(); puzzel != puzzels.end(); puzzel++)
+	for(PuzzelRectange* puzzel : puzzels)
 	{
 		//puzzel->ReconstructBorder();
 		//puzzel->computeBackgroundColor();
-		(*puzzel)->ComputeEdgeFeatures();
-		(*puzzel)->PrintScores();
-
-
+		puzzel->ComputeEdgeFeatures();
+		puzzel->PrintScores();
+		puzzel->MarkEdgesOnOriginImage(src);
 	}
+	imshow("gfdgdfgd", src);
 	int puzzelNr = 0;
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 0, "w0");
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 1, "w1");

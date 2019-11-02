@@ -1,11 +1,12 @@
 #include "IntrestingArea.h"
 #include "LineProcessor.h"
 
-IntrestingArea:: IntrestingArea(Mat areaImage, Mat edgeMap, Rect originRectange,int id):
+IntrestingArea:: IntrestingArea(Mat areaImage, Mat edgeMap, Rect originRectange,int id, RotatedRect box):
 	AreaImage(areaImage), 
 	EdgeMap(edgeMap), 
 	OriginRectange(originRectange),
-	id(id)
+	id(id),
+	box(box)
 {}
 
 PuzzelRectange* IntrestingArea::findPuzzel(BackgroundSeparator* separator)
@@ -191,7 +192,7 @@ PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Mat& 
 						continue;
 					}
 
-					PuzzelRectange* candidate = new PuzzelRectange(*left, *right, *lower, *upper, counter++, separator);
+					PuzzelRectange* candidate = new PuzzelRectange(*left, *right, *lower, *upper, counter++, separator, box);
 					candidate->puzzelArea = AreaImage;
 
 					double totalScore = IsMoreOrLessRectange(candidate, xDeriv, yDeriv);
