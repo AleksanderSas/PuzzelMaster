@@ -24,6 +24,8 @@ public:
 
 	Point2f left, right, lower, upper;
 	Mat puzzelArea;
+	Mat backgroundEdges;
+	Mat edges;
 	double score;
 	double hitScore;
 	double recScore;

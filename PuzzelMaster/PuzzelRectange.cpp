@@ -107,7 +107,7 @@ vector<Vec3f> PuzzelRectange::FindJointCandidates(Mat& puzzelArea)
 	line(canny_output, left, lower, color, thickness);
 	line(canny_output, right, upper, color, thickness);
 	line(canny_output, right, lower, color, thickness);
-	imshow("img" + to_string(id), canny_output);
+	edges = canny_output;
 
 	vector<Vec3f> circles;
 	//HoughCircles(canny_output, circles, HOUGH_GRADIENT, 1.0,

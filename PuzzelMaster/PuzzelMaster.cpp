@@ -19,26 +19,28 @@ PuzzelDetector* puzzelDetector;
 // D:\puzzle\test_3.jpg
 // D:\puzzle\3\test_3_1.jpg
 
-Mat ComposePuzzels(vector<PuzzelRectange*>& puzzels)
+template<typename T>
+Mat ComposePuzzels(vector<PuzzelRectange*>& puzzels, function<Mat(PuzzelRectange*)> selector)
 {
 	int maxCols = 0;
 	int maxRows = 0;
 
 	for (PuzzelRectange* puzzel : puzzels)
 	{
-		if (maxCols < puzzel->puzzelArea.cols)
+		Mat img = selector(puzzel);
+		if (maxCols < img.cols)
 		{
-			maxCols = puzzel->puzzelArea.cols;
+			maxCols = img.cols;
 		}
-		if (maxRows < puzzel->puzzelArea.rows)
+		if (maxRows < img.rows)
 		{
-			maxRows = puzzel->puzzelArea.rows;
+			maxRows = img.rows;
 		}
 	}
 
 	int puzzelsPerRow = ceil(sqrt(puzzels.size()));
 	int rowNumber = ceil(1.0 * puzzels.size() / puzzelsPerRow);
-	Mat mosaic = Mat::zeros(maxRows * rowNumber, maxCols * puzzelsPerRow, puzzels[0]->puzzelArea.type());
+	Mat mosaic = Mat::zeros(maxRows * rowNumber, maxCols * puzzelsPerRow, selector(puzzels[0]).type());
 
 	int i = 0;
 	int currentRow = 0;
@@ -47,12 +49,12 @@ Mat ComposePuzzels(vector<PuzzelRectange*>& puzzels)
 	{
 		for (int k = 0; k < puzzelsPerRow && i < puzzels.size(); k++, i++)
 		{
-			Mat source = puzzels[i]->puzzelArea;
+			Mat source = selector(puzzels[i]);
 			for (int y = 0; y < source.rows; y++)
 			{
 				for (int x = 0; x < source.cols; x++)
 				{
-					mosaic.at<Vec3b>(y + maxRows * currentRow, x + maxCols * k) = source.at<Vec3b>(y, x);
+					mosaic.at<T>(y + maxRows * currentRow, x + maxCols * k) = source.at<T>(y, x);
 				}
 			}
 			putText(mosaic, to_string(puzzels[i]->id), Point(maxCols * k + 10, maxRows * currentRow + 10), HersheyFonts::FONT_HERSHEY_PLAIN, 1.0, textColor);
@@ -60,6 +62,21 @@ Mat ComposePuzzels(vector<PuzzelRectange*>& puzzels)
 		currentRow++;
 	}
 	return mosaic;
+}
+
+Mat ComposePuzzels(vector<PuzzelRectange*>& puzzels)
+{
+	return ComposePuzzels<Vec3b>(puzzels, [](PuzzelRectange* p) {return p->puzzelArea; });
+}
+
+Mat ComposeBackgroundEdges(vector<PuzzelRectange*>& puzzels)
+{
+	return ComposePuzzels<unsigned char>(puzzels, [](PuzzelRectange* p) {return p->backgroundEdges; });
+}
+
+Mat ComposeEdges(vector<PuzzelRectange*>& puzzels)
+{
+	return ComposePuzzels<unsigned char>(puzzels, [](PuzzelRectange* p) {return p->edges; });
 }
 
 void run()
@@ -84,7 +101,9 @@ void run()
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 3, "w3");
 	//imshow("source winner", puzzels[1].puzzelArea);
 
-	imshow("mosaic", ComposePuzzels(puzzels));
+	imshow("mosaic - puzzels", ComposePuzzels(puzzels));
+	imshow("mosaic - background edges", ComposeBackgroundEdges(puzzels));
+	imshow("mosaic - edges", ComposeEdges(puzzels));
 	waitKey(1);
 }
 

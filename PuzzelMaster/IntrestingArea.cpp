@@ -258,6 +258,7 @@ PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Mat& 
 
 					PuzzelRectange* candidate = new PuzzelRectange(*left, *right, *lower, *upper, counter++, separator, box);
 					candidate->puzzelArea = AreaImage;
+					candidate->backgroundEdges = edg;
 
 					double totalScore = IsMoreOrLessRectange(candidate, xDeriv, yDeriv);
 					if (totalScore > 0.0)
