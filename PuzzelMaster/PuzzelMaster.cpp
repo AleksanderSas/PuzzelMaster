@@ -20,7 +20,7 @@ PuzzelDetector* puzzelDetector;
 // D:\puzzle\3\test_3_1.jpg
 
 template<typename T>
-Mat ComposePuzzels(vector<PuzzelRectange*>& puzzels, function<Mat(PuzzelRectange*)> selector)
+Mat ComposePuzzels(vector<PuzzelRectange*>& puzzels, function<Mat(PuzzelRectange*)> selector, Scalar textColor)
 {
 	int maxCols = 0;
 	int maxRows = 0;
@@ -44,7 +44,6 @@ Mat ComposePuzzels(vector<PuzzelRectange*>& puzzels, function<Mat(PuzzelRectange
 
 	int i = 0;
 	int currentRow = 0;
-	Scalar textColor(0, 0, 0);
 	while (i < puzzels.size())
 	{
 		for (int k = 0; k < puzzelsPerRow && i < puzzels.size(); k++, i++)
@@ -66,17 +65,17 @@ Mat ComposePuzzels(vector<PuzzelRectange*>& puzzels, function<Mat(PuzzelRectange
 
 Mat ComposePuzzels(vector<PuzzelRectange*>& puzzels)
 {
-	return ComposePuzzels<Vec3b>(puzzels, [](PuzzelRectange* p) {return p->puzzelArea; });
+	return ComposePuzzels<Vec3b>(puzzels, [](PuzzelRectange* p) {return p->puzzelArea; }, Scalar(0, 0, 0));
 }
 
 Mat ComposeBackgroundEdges(vector<PuzzelRectange*>& puzzels)
 {
-	return ComposePuzzels<unsigned char>(puzzels, [](PuzzelRectange* p) {return p->backgroundEdges; });
+	return ComposePuzzels<unsigned char>(puzzels, [](PuzzelRectange* p) {return p->backgroundEdges; }, Scalar(255));
 }
 
 Mat ComposeEdges(vector<PuzzelRectange*>& puzzels)
 {
-	return ComposePuzzels<unsigned char>(puzzels, [](PuzzelRectange* p) {return p->edges; });
+	return ComposePuzzels<unsigned char>(puzzels, [](PuzzelRectange* p) {return p->edges; }, Scalar(255));
 }
 
 void run()

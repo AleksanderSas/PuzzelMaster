@@ -66,12 +66,12 @@ static Mat getEdgeMapFromBackground(Mat& map)
 
 	vector<Vec4i> lines;
 	Mat edges = Mat::zeros(canny_output.rows, canny_output.cols, CV_8UC1);
-	HoughLinesP(canny_output, lines, 1, 0.01, 15, 15, 3);
+	HoughLinesP(canny_output, lines, 1, 0.01, 15, 15, 2);
 	for (size_t i = 0; i < lines.size(); i++)
 	{
 		Vec4i l = lines[i];
-		line(map, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(125), 2, CV_AA);
-		line(edges, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(255), 2, CV_AA);
+		line(map, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(125), 3, CV_AA);
+		line(edges, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(255), 3, CV_AA);
 	}
 	return edges;
 }
@@ -147,7 +147,7 @@ static float IsMoreOrLessRectange(PuzzelRectange* candidate, Mat& xDeriv, Mat& y
 		if (1.0 * a / b > rectangleFactor || 1.0 * b / a > rectangleFactor) //it not rectange
 			return 0.0;
 
-		double area = sqrt(sqrt(a * b));
+		double area = sqrt(a * b);
 		candidate->areaScore = area;
 		return area * rectangularityMeasure;
 	}
