@@ -17,6 +17,7 @@ PuzzelDetector* puzzelDetector;
 
 // D:\puzzle\2\test_2_2.jpg
 // D:\puzzle\test_3.jpg
+// D:\puzzle\3\test_3_1.jpg
 
 Mat ComposePuzzels(vector<PuzzelRectange*>& puzzels)
 {
@@ -35,7 +36,7 @@ Mat ComposePuzzels(vector<PuzzelRectange*>& puzzels)
 		}
 	}
 
-	int puzzelsPerRow = sqrt(puzzels.size());
+	int puzzelsPerRow = ceil(sqrt(puzzels.size()));
 	int rowNumber = ceil(1.0 * puzzels.size() / puzzelsPerRow);
 	Mat mosaic = Mat::zeros(maxRows * rowNumber, maxCols * puzzelsPerRow, puzzels[0]->puzzelArea.type());
 
@@ -76,7 +77,7 @@ void run()
 		puzzel->MarkEdgesOnOriginImage(src);
 	}
 	imshow("gfdgdfgd", src);
-	int puzzelNr = 0;
+	int puzzelNr = 4;
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 0, "w0");
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 1, "w1");
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 2, "w2");

@@ -28,5 +28,5 @@ private:
 	RotatedRect box;
 };
 
-#define MIN_CROSS_PROD 0.997
+#define MIN_CROSS_PROD 0.994
 #define MIN_RECT_DIAGONAL 50*50

@@ -51,6 +51,31 @@ PuzzelRectange* IntrestingArea::findPuzzel(BackgroundSeparator* separator)
 	return nullptr;
 }
 
+
+static Mat getEdgeMapFromBackground(Mat& map)
+{
+	Mat image_gray, canny_output;
+	int cannEdgeThresh = 300;
+	Mat element = getStructuringElement(MORPH_RECT,
+		Size(2, 2),
+		Point(1, 1));
+	blur(map, map, Size(3, 3));
+	Canny(map, canny_output, cannEdgeThresh, cannEdgeThresh * 2);
+
+	dilate(canny_output, canny_output, element);
+
+	vector<Vec4i> lines;
+	Mat edges = Mat::zeros(canny_output.rows, canny_output.cols, CV_8UC1);
+	HoughLinesP(canny_output, lines, 1, 0.01, 15, 15, 3);
+	for (size_t i = 0; i < lines.size(); i++)
+	{
+		Vec4i l = lines[i];
+		line(map, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(125), 2, CV_AA);
+		line(edges, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(255), 2, CV_AA);
+	}
+	return edges;
+}
+
 static bool hComparer(Point2f i, Point2f j) { return (i.x < j.x); }
 
 static float crossProduct(Point2f& a, Point2f& centre, Point2f& b)
@@ -152,6 +177,41 @@ static void ComputeEdgeHits(Mat& edgeMap, PuzzelRectange* puzzel, int& hit, int&
 	LineProcessor::Process(puzzel->right, puzzel->upper, counter);
 }
 
+static void ComputeEdgeHitScore(Mat& edges, PuzzelRectange* candidate)
+{
+	int hit = 0;
+	int miss = 0;
+	ComputeEdgeHits(edges, candidate, hit, miss);
+	candidate->hitScore = 0.0;
+	if (hit + miss > 0)
+	{
+		candidate->hitScore = 1.0 * hit / (hit + miss);
+	}
+}
+
+static Mat getBackgroundMap(Mat& input, BackgroundSeparator* separator)
+{
+	Mat output = Mat::zeros(input.rows, input.cols, CV_8UC1);
+	int count = 0;
+	float score = 0.0;
+	Vec3b* p_source;
+	unsigned char* p_dest;
+	for (int i = 0; i < input.rows; ++i)
+	{
+		p_source = input.ptr<Vec3b>(i);
+		p_dest = output.ptr<unsigned char>(i);
+		for (int j = 0; j < input.cols; ++j, ++p_source, ++p_dest)
+		{
+			float nondebackgroundProbability = (1 - separator->scorePoint(p_source));
+			if (!isnan(nondebackgroundProbability))
+			{
+				*p_dest = nondebackgroundProbability * 255;
+			}
+		}
+	}
+	return output;
+}
+
 PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Mat& xDeriv, Mat& yDeriv, BackgroundSeparator *separator)
 {
 	auto hSorted = vector<Point2f>(corners);
@@ -159,6 +219,8 @@ PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Mat& 
 
 	int counter = 0;
 	PuzzelRectange* bestRects = nullptr;
+	Mat b = getBackgroundMap(AreaImage, separator);
+	Mat edg = getEdgeMapFromBackground(b);
 
 	for (vector<Point2f>::iterator left = hSorted.begin(); left != hSorted.end(); left++)
 	{
@@ -170,7 +232,8 @@ PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Mat& 
 			{
 				continue;
 			}
-			for (vector<Point2f>::iterator upper = left + 1; upper != right; upper++)
+			//TODO nie trzeba przegladac az do konca, tylko pewien obszar za right
+			for (vector<Point2f>::iterator upper = left + 1; upper != hSorted.end(); upper++)
 			{
 				if (right->x == upper->x && right->y == upper->y)
 				{
@@ -185,7 +248,8 @@ PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Mat& 
 					continue;
 				}
 
-				for (vector<Point2f>::iterator lower = left + 1; lower != right; lower++)
+				//TODO nie trzeba przegladac az do konca, tylko pewien obszar za right
+				for (vector<Point2f>::iterator lower = left + 1; lower != hSorted.end(); lower++)
 				{
 					if (lower == upper || lower->y > upper->y)
 					{
@@ -200,28 +264,24 @@ PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Mat& 
 					{
 						float noneBackgroundScore = candidate->scoreArea(separator);
 						//totalScore *= noneBackgroundScore;
-						int hit = 0;
-						int miss = 0;
-						ComputeEdgeHits(EdgeMap, candidate, hit, miss);
-						if (hit + miss == 0)
-						{
-							continue;
-						}
-						candidate->hitScore = 1.0 * hit / (hit + miss);
-						//candidate.hitScore *= candidate.hitScore;
-						if (candidate->hitScore < 0.5)
+						ComputeEdgeHitScore(edg, candidate);
+						
+						if (candidate->hitScore < 0.15)
 						{
 							continue;
 						}
 						totalScore *= candidate->hitScore;
 						candidate->score = totalScore;
+						cout << "C  ";
+						candidate->PrintScores(); 
+
 						if (bestRects == nullptr || candidate->score > bestRects->score)
 						{
-							if (bestRects != nullptr)
-							{
-								delete bestRects;
-							}
-							bestRects = candidate;
+							swap(bestRects, candidate);
+						}
+						if (candidate != nullptr)
+						{
+							delete candidate;
 						}
 					}
 				}
