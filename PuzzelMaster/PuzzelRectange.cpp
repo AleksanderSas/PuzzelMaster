@@ -107,7 +107,6 @@ vector<Vec3f> PuzzelRectange::FindJointCandidates(Mat& puzzelArea)
 	line(canny_output, left, lower, color, thickness);
 	line(canny_output, right, upper, color, thickness);
 	line(canny_output, right, lower, color, thickness);
-	//dilate(canny_output, BnondebackgroundProbability, element);
 	imshow("img" + to_string(id), canny_output);
 
 	vector<Vec3f> circles;
@@ -234,8 +233,6 @@ void PuzzelRectange::FindNeighbour(vector<PuzzelRectange*> &puzzels, int edgeNr,
 	Utils::WriteColoredText("best score  [" + to_string(bestP->id) + ":"+ to_string(sideNr) + "]  : " + to_string(best) + "\n", colorIdx);
 
 	drawMarker(puzzelArea, LinearComb(edgeFeatures[edgeNr].start, edgeFeatures[edgeNr].end, 0.5), color, 0, 20, 3);
-	imshow("source winner", puzzelArea);
-
 	drawMarker(bestP->puzzelArea, LinearComb(bestP->edgeFeatures[sideNr].start, bestP->edgeFeatures[sideNr].end, 0.5), color, 0, 20, 3);
 	//imshow(name, bestP->puzzelArea);
 	if (bestPSecond != nullptr)

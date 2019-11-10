@@ -76,7 +76,7 @@ void run()
 		puzzel->PrintScores();
 		puzzel->MarkEdgesOnOriginImage(src);
 	}
-	imshow("gfdgdfgd", src);
+	imshow("corners", src);
 	int puzzelNr = 4;
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 0, "w0");
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 1, "w1");

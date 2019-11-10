@@ -122,6 +122,8 @@ vector<PuzzelRectange*> PuzzelDetector::DetectPuzzels()
 		Point(dilation_size, dilation_size));
 	dilate(canny_output, canny2, element);
 
+	RemoveTooLongLines(canny_output);
+
 	//TODO: delete
 	vector<vector<Point> > *contours = new vector<vector<Point>>(); 
 	vector<Vec4i> hierarchy;
@@ -169,4 +171,18 @@ vector<PuzzelRectange*> PuzzelDetector::DetectPuzzels()
 	}
 
 	return puzzels;
+}
+
+void PuzzelDetector::RemoveTooLongLines(cv::Mat& canny_output)
+{
+	vector<Vec4i> lines;
+	Mat edges = Mat::zeros(canny_output.rows, canny_output.cols, CV_8UC1);
+	HoughLinesP(canny_output, lines, 1, 0.01, 15, MIN_LINE_LEN_TO_REMOVE, 3);
+	for (size_t i = 0; i < lines.size(); i++)
+	{
+		Vec4i l = lines[i];
+		line(canny_output, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0), 2, CV_AA);
+		line(edges, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(255), 2, CV_AA);
+	}
+	imshow("too long lines", edges);
 }

@@ -69,5 +69,6 @@ public:
 	#define MAX_LINE_GAP 6
 #endif
 #define AREA_PADDING 10
+#define MIN_RECT_SIZE 50
 };
 

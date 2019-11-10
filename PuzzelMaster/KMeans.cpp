@@ -295,6 +295,11 @@ vector<IntrestingArea> KMeans::GetPuzzels(Mat &img, Mat& edgeMap)
 
 		auto mergedContour = MergeContours(buffer);
 		auto box = minAreaRect(*mergedContour);
+		if (box.size.height < MIN_RECT_SIZE || box.size.width < MIN_RECT_SIZE)
+		{
+			continue;
+		}
+
 		puzzelAreas.push_back(
 							IntrestingArea(Extract(box, img, AREA_PADDING),
 							Extract(box, edgeMap, AREA_PADDING),

@@ -16,6 +16,8 @@ public:
 	PuzzelDetector(Mat& input);
 	vector<PuzzelRectange*> DetectPuzzels();
 
+	void RemoveTooLongLines(cv::Mat& canny_output);
+
 	int cannEdgeThresh = 70;
 	int dilation_size = 2;
 
@@ -28,6 +30,7 @@ private:
 	Mat contourDrawing;
 	KMeans knn;
 
+#define MIN_LINE_LEN_TO_REMOVE 80
 #if 0
 
 #define MIN_SQUARE_DISTANCE  1600
