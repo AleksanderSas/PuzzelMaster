@@ -45,7 +45,6 @@ public:
 
 	void ComputeEdgeFeatures();
 	void FindNeighbour(vector<PuzzelRectange*>& puzzels, int edgeNr, string name);
-	void ReconstructBorder();
 	void FindBestCircleJoin(vector<Vec3f>& circles, Point2f c1, Point2f c2, edgeFeature* e);
 	vector<Vec3f> FindJointCandidates(Mat& puzzelArea);
 
@@ -60,6 +59,7 @@ public:
 	RotatedRect box;
 
 	void MarkEdgesOnOriginImage(Mat& image);
+	void MarkJointsOnOriginImage(Mat& image);
 
 #if 1
 	#define MIN_LINE_LEN 18

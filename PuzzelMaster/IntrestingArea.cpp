@@ -32,19 +32,16 @@ PuzzelRectange* IntrestingArea::findPuzzel(BackgroundSeparator* separator)
 		minDistance);
 	cout << "** Number of corners detected: " << corners.size() << endl;
 
-	/*for (auto it = corners.begin(); it != corners.end(); it++)
+#if 0
+	for (auto it = corners.begin(); it != corners.end(); it++)
 	{
 		drawMarker(AreaImage, *it, Scalar(123, 231, 90));
-	}*/
+	}
+#endif
 
 	auto result = FindBestRectange(corners, xDeriv, yDeriv, separator);
 	if (result != nullptr)
 	{
-		//for (auto p = corners.begin(); p != corners.end(); p++)
-		//{
-		//	drawMarker(puzzel, *p, Scalar(60, 160, 30));
-		//}
-
 		result->puzzelArea = AreaImage;
 		return result;
 	}

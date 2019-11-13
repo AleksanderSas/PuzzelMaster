@@ -382,17 +382,6 @@ void PuzzelRectange::FindBestCircleJoin(vector<Vec3f>& circles, Point2f c1, Poin
 	circle(puzzelArea, center, 1, e->isMaleJoint? Scalar(0, 100, 100) : Scalar(100, 40, 200), 3, LINE_AA);
 }
 
-void PuzzelRectange::ReconstructBorder()
-{
-	vector<Vec3f> circles = FindJointCandidates(puzzelArea);
-
-	edgeFeature* e = edgeFeatures;
-	FindBestCircleJoin(circles, left, upper, e++);
-	FindBestCircleJoin(circles, left, lower, e++);
-	FindBestCircleJoin(circles, right, upper, e++);
-	FindBestCircleJoin(circles, right, lower, e++);
-}
-
 bool PuzzelRectange::isPointInside(int x, int y)
 {
 	int testX = (lower.x + upper.x) / 2;
@@ -499,4 +488,14 @@ void PuzzelRectange::MarkEdgesOnOriginImage(Mat& image)
 	drawMarker(image, p2, Scalar(123, 231, 90));
 	drawMarker(image, p3, Scalar(123, 231, 90));
 	drawMarker(image, p4, Scalar(123, 231, 90));
+}
+
+void PuzzelRectange::MarkJointsOnOriginImage(Mat& image)
+{
+	for (int i = 0; i < 4; i++)
+	{
+		auto j = edgeFeatures[i];
+		Point2f p1 = TransformPoint(Point2f(j.joint[0], j.joint[1]), box);
+		circle(image, p1, 2, j.isMaleJoint? Scalar(250, 255, 50) : Scalar(90, 30, 255), 3, LINE_AA);
+	}
 }

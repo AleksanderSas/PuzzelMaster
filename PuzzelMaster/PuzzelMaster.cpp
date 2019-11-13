@@ -86,19 +86,18 @@ void run()
 
 	for(PuzzelRectange* puzzel : puzzels)
 	{
-		//puzzel->ReconstructBorder();
-		//puzzel->computeBackgroundColor();
 		puzzel->ComputeEdgeFeatures();
 		puzzel->PrintScores();
 		puzzel->MarkEdgesOnOriginImage(src);
+		puzzel->MarkJointsOnOriginImage(src);
 	}
+
 	imshow("corners", src);
 	int puzzelNr = 4;
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 0, "w0");
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 1, "w1");
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 2, "w2");
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 3, "w3");
-	//imshow("source winner", puzzels[1].puzzelArea);
 
 	imshow("mosaic - puzzels", ComposePuzzels(puzzels));
 	imshow("mosaic - background edges", ComposeBackgroundEdges(puzzels));
