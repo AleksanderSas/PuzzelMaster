@@ -10,9 +10,20 @@
 Vec3f ParametrizeLine(Point2f& c1, Point2f& c2)
 {
 	Vec3f p;
-	p[0] = 1.0;
-	p[1] = 1.0 * (c2.x - c1.x) / (c1.y - c2.y);
-	p[2] = 1.0 * -p[1] * c1.y - c1.x;
+	int dx = c1.x - c2.x;
+	int dy = c1.y - c2.y;
+
+	if (abs(dx) < abs(dy) && c1.y != c2.y)
+	{
+		p[0] = 1.0;
+		p[1] = -1.0 * dx / dy;
+	}
+	else
+	{
+		p[1] = 1.0;
+		p[0] = -1.0 * dy / dx;
+	}
+	p[2] = -p[1] * c1.y - p[0] * c1.x;
 	return p;
 }
 
@@ -322,7 +333,7 @@ float PuzzelRectange::computeBackgroundSimilarity(Vec3f circle, bool isinside)
 	if (count == 0)
 		return 0.0;
 
-	return score;
+	return score / count;
 }
 
 float PuzzelRectange::scoreCircle(Vec3f circle)
@@ -337,13 +348,27 @@ void PuzzelRectange::FindBestCircleJoin(vector<Vec3f>& circles, Point2f c1, Poin
 	Vec3i candidate;
 	float bestScore = -9999;
 
+	int c = 0;
 	for (size_t i = 0; i < circles.size(); i++)
 	{
 		Vec3i _circle = circles[i];
 		Point center = Point(_circle[0], _circle[1]);
 		int radius = _circle[2];
 		int squareDistValue = squareDist(lineParams, center.x, center.y);
-		if (squareDistValue < 1.2 * radius * radius && squareDistValue > 0.4 * radius * radius)
+		if (squareDistValue < 1.7 * radius * radius && squareDistValue > 0.4 * radius * radius)
+		{
+			c++;
+		}
+	}
+
+	int t = 0;
+	for (size_t i = 0; i < circles.size(); i++)
+	{
+		Vec3i _circle = circles[i];
+		Point center = Point(_circle[0], _circle[1]);
+		int radius = _circle[2];
+		int squareDistValue = squareDist(lineParams, center.x, center.y);
+		if (squareDistValue < 1.7 * radius * radius && squareDistValue > 0.4 * radius * radius)
 		{
 			int c1Dist = hypot(center.x - c1.x, center.y - c1.y);
 			int c2Dist = hypot(center.x - c2.x, center.y - c2.y);
@@ -355,8 +380,8 @@ void PuzzelRectange::FindBestCircleJoin(vector<Vec3f>& circles, Point2f c1, Poin
 				continue;
 			}
 
-			//int match = abs(radius - sqrt(squareDistValue)) + abs(c1Dist - c2Dist) - level * 8;
-			float condidateScore = scoreCircle(_circle);
+			float orderScore = 2.0 - 2.0 * t++ / c;
+			float condidateScore = scoreCircle(_circle) + orderScore;
 
 			if (1.0 * abs(c1Dist - c2Dist) / (c1Dist + c2Dist) < 0.5)
 			{
@@ -366,15 +391,15 @@ void PuzzelRectange::FindBestCircleJoin(vector<Vec3f>& circles, Point2f c1, Poin
 					bestScore = condidateScore;
 				}
 				
-				/*{
-					cout << id << "    " << isPointInside(candidate[0], candidate[1]) << "   " << condidateScore<< endl;
-					circle(puzzelArea, Point(candidate[0], candidate[1]), radius, Scalar(100, 40, 200), 1, LINE_AA);
-				}*/
+#if 0
+				cout << "joint score:  " << condidateScore << "  " << condidateScore - orderScore << "   " << orderScore << endl;
+				circle(puzzelArea, Point(candidate[0], candidate[1]), radius, Scalar(100, 40, 200), 1, LINE_AA);
+#endif
 			}
 		}
 	}
+	//cout << endl;
 
-	// circle outline
 	e->isMaleJoint = isPointInside(candidate[0], candidate[1]);
 	e->joint = candidate;
 
