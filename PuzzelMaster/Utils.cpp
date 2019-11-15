@@ -32,7 +32,7 @@ static unsigned char availableColors[][3] =
 		{242, 242, 242}
 	};
 
-unsigned char* Utils::GetCOlorFromTable(unsigned int idx)
+unsigned char* Utils::GetColorFromTable(unsigned int idx)
 {
 	return availableColors[idx];
 }

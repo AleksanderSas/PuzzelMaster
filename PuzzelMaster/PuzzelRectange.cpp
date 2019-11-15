@@ -214,7 +214,7 @@ void PuzzelRectange::FindNeighbour(vector<PuzzelRectange*> &puzzels, int edgeNr,
 	PuzzelRectange* bestPSecond = NULL;
 
 	unsigned int colorIdx = rng.next() % 16;
-	unsigned char* c = Utils::GetCOlorFromTable(colorIdx);
+	unsigned char* c = Utils::GetColorFromTable(colorIdx);
 	Scalar color(c[2], c[1], c[0]);
 
 	for (vector<PuzzelRectange*>::iterator p = puzzels.begin(); p != puzzels.end(); p++)
@@ -342,32 +342,17 @@ float PuzzelRectange::scoreCircle(Vec3f circle)
 	return computeBackgroundSimilarity(circle, isInside);
 }
 
-void PuzzelRectange::FindBestCircleJoin(vector<Vec3f>& circles, Point2f c1, Point2f c2, edgeFeature* e)
+static void SelectCirclesAlignedToEdge(vector<Vec3f>& circles, Point2f c1, Point2f c2, vector<Vec3f>& selectedCircles)
 {
 	Vec3f lineParams = ParametrizeLine(c1, c2);
-	Vec3i candidate;
-	float bestScore = -9999;
 
-	int c = 0;
 	for (size_t i = 0; i < circles.size(); i++)
 	{
 		Vec3i _circle = circles[i];
 		Point center = Point(_circle[0], _circle[1]);
 		int radius = _circle[2];
 		int squareDistValue = squareDist(lineParams, center.x, center.y);
-		if (squareDistValue < 1.7 * radius * radius && squareDistValue > 0.4 * radius * radius)
-		{
-			c++;
-		}
-	}
-
-	int t = 0;
-	for (size_t i = 0; i < circles.size(); i++)
-	{
-		Vec3i _circle = circles[i];
-		Point center = Point(_circle[0], _circle[1]);
-		int radius = _circle[2];
-		int squareDistValue = squareDist(lineParams, center.x, center.y);
+		//allow only circles near to the line
 		if (squareDistValue < 1.7 * radius * radius && squareDistValue > 0.4 * radius * radius)
 		{
 			int c1Dist = hypot(center.x - c1.x, center.y - c1.y);
@@ -375,30 +360,53 @@ void PuzzelRectange::FindBestCircleJoin(vector<Vec3f>& circles, Point2f c1, Poin
 			int len = hypot(c1.x - c2.x, c1.y - c2.y);
 
 			int shift = abs(c1Dist - c2Dist) / 2;
-			if (c1Dist > len - radius || c2Dist > len - radius || 1.0 * shift / len > 1.25)
+			//allow only circles between c1 and c2
+			if (c1Dist > len - radius || c2Dist > len - radius)
 			{
 				continue;
 			}
-
-			float orderScore = 2.0 - 2.0 * t++ / c;
-			float condidateScore = scoreCircle(_circle) + orderScore;
-
-			if (1.0 * abs(c1Dist - c2Dist) / (c1Dist + c2Dist) < 0.5)
+			//allow only circles near to the line centre
+			if (1.0 * shift / len < 0.25)
 			{
-				if (bestScore < condidateScore)
-				{
-					candidate = _circle;
-					bestScore = condidateScore;
-				}
-				
-#if 0
-				cout << "joint score:  " << condidateScore << "  " << condidateScore - orderScore << "   " << orderScore << endl;
-				circle(puzzelArea, Point(candidate[0], candidate[1]), radius, Scalar(100, 40, 200), 1, LINE_AA);
-#endif
+				selectedCircles.push_back(_circle);
 			}
 		}
 	}
-	//cout << endl;
+}
+
+void PuzzelRectange::FindBestCircleJoin(vector<Vec3f>& circles, Point2f c1, Point2f c2, edgeFeature* e)
+{
+	Vec3i candidate;
+	float bestScore = -9999;
+	vector<Vec3f> finalCircles;
+
+	SelectCirclesAlignedToEdge(circles, c1, c2, finalCircles);
+
+	int t = 0;
+	for (size_t i = 0; i < finalCircles.size(); i++)
+	{
+		Vec3i _circle = finalCircles[i];
+		int radius = _circle[2];
+		float orderScore = 1.0 * (1.0 - 1.0 * i / finalCircles.size());
+		float condidateScore = scoreCircle(_circle) + orderScore;
+		if (bestScore < condidateScore)
+		{
+			candidate = _circle;
+			bestScore = condidateScore;
+		}
+				
+#if 1
+		unsigned int colorIdx = (((long long int)e) >> 3) % 16;
+		unsigned char* c = Utils::GetColorFromTable(colorIdx);
+		Scalar color(c[2], c[1], c[0]);
+
+		char buffer[255];
+		sprintf_s(buffer, "joint score:  %f  %f   %f\n", condidateScore, condidateScore - orderScore, orderScore);
+		Utils::WriteColoredText(string(buffer), colorIdx);
+		circle(puzzelArea, Point(_circle[0], _circle[1]), radius, color, 1, LINE_AA);
+#endif
+	}
+	cout << endl;
 
 	e->isMaleJoint = isPointInside(candidate[0], candidate[1]);
 	e->joint = candidate;
