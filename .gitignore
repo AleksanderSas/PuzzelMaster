@@ -32,12 +32,12 @@
 *.app
 
 # Build Directories
-x64\*
-Debug\*
-Release\*
-PuzzelMaster\x64\*
-PuzzelMaster\Debug\*
-PuzzelMaster\Release\*
+x64/*
+Debug/*
+Release/*
 .vs/*
 *.vcxproj.filters
 *.vcxproj.user
+PuzzelMaster/Debug/*
+PuzzelMaster/Release/*
+PuzzelMaster/x64/*
