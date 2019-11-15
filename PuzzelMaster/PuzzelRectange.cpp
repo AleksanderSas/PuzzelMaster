@@ -190,7 +190,7 @@ float feature(vector<Vec3b>& v1, vector<Vec3b>& v2)
 
 double CompareFeatureVectors(edgeFeature* e1, edgeFeature* e2)
 {
-	if (e1->isMaleJoint ^ e2->isMaleJoint)
+	if (e1->isMaleJoint ^ e2->isMaleJoint && e1->hasJoint && e2->hasJoint)
 	{
 		float match = feature(e1->colors1, e2->colors2);
 		match += feature(e1->colors2, e2->colors1);
@@ -382,17 +382,17 @@ void PuzzelRectange::FindBestCircleJoin(vector<Vec3f>& circles, Point2f c1, Poin
 
 	SelectCirclesAlignedToEdge(circles, c1, c2, finalCircles);
 
-	int t = 0;
 	for (size_t i = 0; i < finalCircles.size(); i++)
 	{
 		Vec3i _circle = finalCircles[i];
-		int radius = _circle[2];
 		float orderScore = 1.0 * (1.0 - 1.0 * i / finalCircles.size());
-		float condidateScore = scoreCircle(_circle) + orderScore;
-		if (bestScore < condidateScore)
+		float coverScore = scoreCircle(_circle);
+		float condidateScore = coverScore + orderScore;
+		if (bestScore < condidateScore && coverScore > MIN_COVER_SCORE)
 		{
 			candidate = _circle;
 			bestScore = condidateScore;
+			e->hasJoint = true;
 		}
 				
 #if 1
@@ -400,16 +400,20 @@ void PuzzelRectange::FindBestCircleJoin(vector<Vec3f>& circles, Point2f c1, Poin
 		unsigned char* c = Utils::GetColorFromTable(colorIdx);
 		Scalar color(c[2], c[1], c[0]);
 
+		int radius = _circle[2];
 		char buffer[255];
-		sprintf_s(buffer, "joint score:  %f  %f   %f\n", condidateScore, condidateScore - orderScore, orderScore);
+		sprintf_s(buffer, "joint score:  %f  %f  %f  %s\n", condidateScore, condidateScore - orderScore, orderScore, coverScore > MIN_COVER_SCORE? "" : "XXX");
 		Utils::WriteColoredText(string(buffer), colorIdx);
-		circle(puzzelArea, Point(_circle[0], _circle[1]), radius, color, 1, LINE_AA);
+		circle(puzzelArea, Point(_circle[0], _circle[1]), radius, color / (coverScore > MIN_COVER_SCORE ?  1 : 2), 1, LINE_AA);
 #endif
 	}
 	cout << endl;
 
-	e->isMaleJoint = isPointInside(candidate[0], candidate[1]);
-	e->joint = candidate;
+	if (e->hasJoint)
+	{
+		e->isMaleJoint = isPointInside(candidate[0], candidate[1]);
+		e->joint = candidate;
+	}
 
 	Point center = Point(candidate[0], candidate[1]);
 	circle(puzzelArea, center, 1, e->isMaleJoint? Scalar(0, 100, 100) : Scalar(100, 40, 200), 3, LINE_AA);
@@ -527,8 +531,11 @@ void PuzzelRectange::MarkJointsOnOriginImage(Mat& image)
 {
 	for (int i = 0; i < 4; i++)
 	{
-		auto j = edgeFeatures[i];
-		Point2f p1 = TransformPoint(Point2f(j.joint[0], j.joint[1]), box);
-		circle(image, p1, 2, j.isMaleJoint? Scalar(250, 255, 50) : Scalar(90, 30, 255), 3, LINE_AA);
+		auto joint = edgeFeatures[i];
+		if (joint.hasJoint)
+		{
+			Point2f p1 = TransformPoint(Point2f(joint.joint[0], joint.joint[1]), box);
+			circle(image, p1, 2, joint.isMaleJoint ? Scalar(250, 255, 50) : Scalar(90, 30, 255), 3, LINE_AA);
+		}
 	}
 }

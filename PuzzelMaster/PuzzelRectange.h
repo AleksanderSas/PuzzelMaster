@@ -9,9 +9,10 @@ using namespace cv;
 
 struct edgeFeature
 {
+	bool isMaleJoint;
+	bool hasJoint = false;
 	int len;
 	Vec3i joint;  //x, y, r
-	bool isMaleJoint;
 	vector<Vec3b> colors1;
 	vector<Vec3b> colors2;
 	Point2f start, end;
@@ -72,5 +73,6 @@ public:
 #endif
 #define AREA_PADDING 10
 #define MIN_RECT_SIZE 50
+#define MIN_COVER_SCORE 0.01
 };
 
