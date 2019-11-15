@@ -56,12 +56,12 @@ Point2f LinearComb(Point2f p1, Point2f p2, float p1Weigth)
 	return Point2f(p1.x * p1Weigth + p2.x * (1 - p1Weigth), p1.y * p1Weigth + p2.y * (1 - p1Weigth));
 }
 
-void ComputeFeatureVector(Mat &m, Point2f& startCorner, Point2f& endCorner, Point2f& startBeckSide, Point2f& endBeckSide, edgeFeature* e)
+void ComputeFeatureVector(Mat &m, Point2f& startCorner, Point2f& endCorner, Point2f& startBackSide, Point2f& endBackSide, edgeFeature* e)
 {
 	float factor = 0.95f;
-	Point2f start = LinearComb(startCorner, startBeckSide, factor);
-	Point2f end = LinearComb(endCorner, endBeckSide, factor);
-	e->len = (int)hypot(start.x - end.x, start.y - end.y);;
+	Point2f start = LinearComb(startCorner, startBackSide, factor);
+	Point2f end = LinearComb(endCorner, endBackSide, factor);
+	e->len = (int)hypot(start.x - end.x, start.y - end.y);
 
 	int start2jointDist = hypot(e->joint[0] - start.x, e->joint[1] - start.y);
 	int joint2endDist = hypot(e->joint[0] - end.x, e->joint[1] - end.y);
@@ -165,10 +165,11 @@ void PuzzelRectange::ComputeEdgeFeatures()
 
 double compare(uchar a, uchar b)
 {
-	return 1.0 * (a - b) * (a - b) / (a + b);
+	unsigned int sum = a + b;
+	return 1.0 * (a - b ) * (a - b) / sum;
 }
 
-float feature(vector<Vec3b>& v1, vector<Vec3b>& v2)
+pair<double, int> feature(vector<Vec3b>& v1, vector<Vec3b>& v2)
 {
 	int c = 0;
 	double diff = 0.0;
@@ -185,22 +186,23 @@ float feature(vector<Vec3b>& v1, vector<Vec3b>& v2)
 	int diffSize = v1.size() - v2.size();
 	int penalty = abs(diffSize);
 
-	return diff / c + penalty * 10;
+	return pair<double, int>(diff / c, penalty * 10);
 }
 
-double CompareFeatureVectors(edgeFeature* e1, edgeFeature* e2)
+pair<double, int> CompareFeatureVectors(edgeFeature* e1, edgeFeature* e2)
 {
 	if (e1->isMaleJoint ^ e2->isMaleJoint && e1->hasJoint && e2->hasJoint)
 	{
-		float match = feature(e1->colors1, e2->colors2);
-		match += feature(e1->colors2, e2->colors1);
-		return match;
+		auto p1 = feature(e1->colors1, e2->colors2);
+		auto p2 = feature(e1->colors2, e2->colors1);
+		//match += abs(e1->len - e2->len) * 15;
+		return pair<double, int>(p1.first + p2.first, p1.second + p2.second);
 		/*int c = e1->colors1.size() + e1->colors2.size() + e2->colors1.size() + e2->colors2.size();
 		float rMatch = compare(e1->joint[2], e2->joint[2]) * c/4 / 5;
 		return match + rMatch;*/
 
 	}
-	return DBL_MAX;
+	return pair<double, int>(DBL_MAX, INT_MAX);
 }
 
 static RNG rng(13375);
@@ -224,9 +226,15 @@ void PuzzelRectange::FindNeighbour(vector<PuzzelRectange*> &puzzels, int edgeNr,
 		{
 			for (int i = 0; i < 4; i++)
 			{
-				double r = CompareFeatureVectors(edgeFeatures + edgeNr, puzzel->edgeFeatures + i);
-				if(r < 9999999)
-					Utils::WriteColoredText("edge [" + to_string(puzzel->id) + ":" + to_string(i) + "]  : " + to_string(r) + "\n", colorIdx);
+				pair<double, int> score = CompareFeatureVectors(edgeFeatures + edgeNr, puzzel->edgeFeatures + i);
+				double r = score.first + score.second;
+				if (score.first > 9999999)
+					continue;
+
+				char buffer[255];
+				sprintf_s(buffer, "edge [%d:%d]  : %g  =  %g  +  %d\n", puzzel->id, i, r, score.first, score.second);
+				Utils::WriteColoredText(string(buffer), colorIdx);
+
 				if (r < best)
 				{
 					bestSecond = best;
@@ -236,6 +244,12 @@ void PuzzelRectange::FindNeighbour(vector<PuzzelRectange*> &puzzels, int edgeNr,
 					sideNr = i;
 					best = r;
 					bestP = puzzel;
+				}
+				else if (r < bestSecond)
+				{
+					bestSecond = r;
+					bestPSecond = puzzel;
+					sideNrSecond = i;
 				}
 			}
 		}
@@ -248,7 +262,7 @@ void PuzzelRectange::FindNeighbour(vector<PuzzelRectange*> &puzzels, int edgeNr,
 	//imshow(name, bestP->puzzelArea);
 	if (bestPSecond != nullptr)
 	{
-		drawMarker(bestPSecond->puzzelArea, LinearComb(bestPSecond->edgeFeatures[sideNrSecond].start, bestPSecond->edgeFeatures[sideNrSecond].end, 0.5), color, 0, 20, 1);
+		drawMarker(bestPSecond->puzzelArea, LinearComb(bestPSecond->edgeFeatures[sideNrSecond].start, bestPSecond->edgeFeatures[sideNrSecond].end, 0.5), color, 0, 15, 2);
 		Utils::WriteColoredText("second score [" + to_string(bestPSecond->id) + ":" + to_string(sideNrSecond) + "] : " + to_string(bestSecond) + "\n", colorIdx);
 		//imshow(name + "_second", bestPSecond->puzzelArea);
 	}
@@ -395,7 +409,7 @@ void PuzzelRectange::FindBestCircleJoin(vector<Vec3f>& circles, Point2f c1, Poin
 			e->hasJoint = true;
 		}
 				
-#if 1
+#if 0
 		unsigned int colorIdx = (((long long int)e) >> 3) % 16;
 		unsigned char* c = Utils::GetColorFromTable(colorIdx);
 		Scalar color(c[2], c[1], c[0]);
