@@ -169,7 +169,7 @@ double compare(uchar a, uchar b)
 	return 1.0 * (a - b ) * (a - b) / sum;
 }
 
-static pair<double, int> feature(vector<Vec3b>& v1, vector<Vec3b>& v2)
+static double feature(vector<Vec3b>& v1, vector<Vec3b>& v2)
 {
 	int c = 0;
 	double diff = 0.0;
@@ -183,11 +183,13 @@ static pair<double, int> feature(vector<Vec3b>& v1, vector<Vec3b>& v2)
 		c++;
 	}
 
-	int diffSize = v1.size() - v2.size();
-	int penalty = abs(diffSize);
-
-	return pair<double, int>(diff / c, penalty * 10);
+	return diff / c;
+	//int diffSize = v1.size() - v2.size();
+	//int penalty = abs(diffSize);
+	//return pair<double, int>(diff / c, penalty * 10);
 }
+
+static int Abs(int x) { return x >= 0 ? x : -x; }
 
 pair<double, int> PuzzelRectange::CompareFeatureVectors(edgeFeature* e1, edgeFeature* e2)
 {
@@ -195,12 +197,12 @@ pair<double, int> PuzzelRectange::CompareFeatureVectors(edgeFeature* e1, edgeFea
 	{
 		auto p1 = feature(e1->colors1, e2->colors2);
 		auto p2 = feature(e1->colors2, e2->colors1);
-		//match += abs(e1->len - e2->len) * 15;
-		return pair<double, int>(p1.first + p2.first, p1.second + p2.second);
-		/*int c = e1->colors1.size() + e1->colors2.size() + e2->colors1.size() + e2->colors2.size();
-		float rMatch = compare(e1->joint[2], e2->joint[2]) * c/4 / 5;
-		return match + rMatch;*/
+		
+		int diffVectorSize = Abs(e1->colors1.size() + e1->colors2.size() - e2->colors1.size() - e2->colors2.size());
+		int diffTotalSize = Abs(e1->len - e2->len);
+		int diffScore = diffVectorSize * 5 + diffTotalSize * 10;
 
+		return pair<double, int>(p1 + p2, diffScore);
 	}
 	return pair<double, int>(DBL_MAX, INT_MAX);
 }
@@ -373,7 +375,7 @@ static void SelectCirclesAlignedToEdge(vector<Vec3f>& circles, Point2f c1, Point
 			int c2Dist = hypot(center.x - c2.x, center.y - c2.y);
 			int len = hypot(c1.x - c2.x, c1.y - c2.y);
 
-			int shift = abs(c1Dist - c2Dist) / 2;
+			int shift = Abs(c1Dist - c2Dist) / 2;
 			//allow only circles between c1 and c2
 			if (c1Dist > len - radius || c2Dist > len - radius)
 			{

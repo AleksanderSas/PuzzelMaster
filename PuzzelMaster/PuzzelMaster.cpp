@@ -7,6 +7,7 @@
 #include "time.h"
 #include "PuzzelDetector.h"
 #include "KMeans.h"
+#include "PuzzelSolver.h"
 #include "math.h"
 
 using namespace cv;
@@ -16,16 +17,17 @@ Mat src;
 PuzzelDetector* puzzelDetector;
 
 // D:\puzzle\2\test_2_2.jpg
+// D:\puzzle\2\test_2_2_mini.jpg
 // D:\puzzle\test_3.jpg
 // D:\puzzle\3\test_3_1.jpg
 
-template<typename T>
-Mat ComposePuzzels(vector<PuzzelRectange*>& puzzels, function<Mat(PuzzelRectange*)> selector, Scalar textColor)
+template<typename T, typename S>
+Mat ComposePuzzels(vector<S*>& puzzels, function<Mat(S*)> selector, function<string(S*)> label, Scalar textColor)
 {
 	int maxCols = 0;
 	int maxRows = 0;
 
-	for (PuzzelRectange* puzzel : puzzels)
+	for (S* puzzel : puzzels)
 	{
 		Mat img = selector(puzzel);
 		if (maxCols < img.cols)
@@ -56,7 +58,7 @@ Mat ComposePuzzels(vector<PuzzelRectange*>& puzzels, function<Mat(PuzzelRectange
 					mosaic.at<T>(y + maxRows * currentRow, x + maxCols * k) = source.at<T>(y, x);
 				}
 			}
-			putText(mosaic, to_string(puzzels[i]->id), Point(maxCols * k + 10, maxRows * currentRow + 10), HersheyFonts::FONT_HERSHEY_PLAIN, 1.0, textColor);
+			putText(mosaic, label(puzzels[i]), Point(maxCols * k + 10, maxRows * currentRow + 10), HersheyFonts::FONT_HERSHEY_PLAIN, 1.0, textColor);
 		}
 		currentRow++;
 	}
@@ -65,17 +67,34 @@ Mat ComposePuzzels(vector<PuzzelRectange*>& puzzels, function<Mat(PuzzelRectange
 
 Mat ComposePuzzels(vector<PuzzelRectange*>& puzzels)
 {
-	return ComposePuzzels<Vec3b>(puzzels, [](PuzzelRectange* p) {return p->puzzelArea; }, Scalar(0, 0, 0));
+	return ComposePuzzels<Vec3b, PuzzelRectange>(puzzels, [](PuzzelRectange* p) {return p->puzzelArea; }, [](PuzzelRectange* p) {return to_string(p->id); }, Scalar(0, 0, 0));
 }
 
 Mat ComposeBackgroundEdges(vector<PuzzelRectange*>& puzzels)
 {
-	return ComposePuzzels<unsigned char>(puzzels, [](PuzzelRectange* p) {return p->backgroundEdges; }, Scalar(255));
+	return ComposePuzzels<unsigned char, PuzzelRectange>(puzzels, [](PuzzelRectange* p) {return p->backgroundEdges; }, [](PuzzelRectange* p) {return to_string(p->id); }, Scalar(255));
 }
 
 Mat ComposeEdges(vector<PuzzelRectange*>& puzzels)
 {
-	return ComposePuzzels<unsigned char>(puzzels, [](PuzzelRectange* p) {return p->edges; }, Scalar(255));
+	return ComposePuzzels<unsigned char, PuzzelRectange>(puzzels, [](PuzzelRectange* p) {return p->edges; }, [](PuzzelRectange* p) {return to_string(p->id); }, Scalar(255));
+}
+
+Mat ComposeSelectedEdges(Token* lastToken)
+{
+	char buffer[255];
+	sprintf_s(buffer, "score:  %d", lastToken->score);
+
+	vector<Token*> tokens;
+	while (lastToken != nullptr)
+	{
+		tokens.insert(tokens.begin(), lastToken);
+		lastToken = lastToken->previous;
+	}
+	auto selector = [](Token* t) {return t->puzzel->ExtractPuzzelAndRotateEdgeToUp((t->pozzelRotation + 1) % 4, 20); };
+	Mat mosaic = ComposePuzzels<Vec3b, Token>(tokens, selector, [](Token* t) {return to_string(t->puzzel->id); }, Scalar(0, 255, 0));
+	putText(mosaic, buffer, Point(5, mosaic.rows - 12), HersheyFonts::FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
+	return mosaic;
 }
 
 void run()
@@ -92,16 +111,31 @@ void run()
 		puzzel->MarkJointsOnOriginImage(src);
 	}
 
+	auto solver = PuzzelSolver();
+	solver.Solve(puzzels, 2, 2);
+	imshow("mosaic - solved 0", ComposeSelectedEdges(solver.GetBest(0)));
+	imshow("mosaic - solved 1", ComposeSelectedEdges(solver.GetBest(1)));
+	imshow("mosaic - solved 2", ComposeSelectedEdges(solver.GetBest(2)));
+
+	cout << "\n1-ST:\n";
+	solver.PrintHistory(0);
+	cout << "\n2-ND:\n";
+	solver.PrintHistory(1);
+	cout << "\n3-RD:\n";
+	solver.PrintHistory(2);
+	waitKey(1);
+
 	imshow("corners", src);
-	int puzzelNr = 4;
+	int puzzelNr = 1;
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 0, "w0");
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 1, "w1");
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 2, "w2");
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 3, "w3");
 
 	imshow("mosaic - puzzels", ComposePuzzels(puzzels));
-	imshow("mosaic - background edges", ComposeBackgroundEdges(puzzels));
-	imshow("mosaic - edges", ComposeEdges(puzzels));
+	//imshow("mosaic - background edges", ComposeBackgroundEdges(puzzels));
+	//imshow("mosaic - edges", ComposeEdges(puzzels));
+
 	waitKey(1);
 }
 
