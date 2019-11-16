@@ -21,8 +21,10 @@ struct edgeFeature
 class PuzzelRectange
 {
 public:
+	static pair<double, int> CompareFeatureVectors(edgeFeature* e1, edgeFeature* e2);
 	PuzzelRectange(Point2f& left, Point2f& right, Point2f& lower, Point2f& upper, int id, BackgroundSeparator* backgroundSeparator, RotatedRect box);
 
+	Mat ExtractPuzzelAndRotateEdgeToUp(int edgeIdx, int padding);
 	Point2f left, right, lower, upper;
 	Mat puzzelArea;
 	Mat backgroundEdges;

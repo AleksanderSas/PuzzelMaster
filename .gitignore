@@ -41,3 +41,5 @@ Release/*
 PuzzelMaster/Debug/*
 PuzzelMaster/Release/*
 PuzzelMaster/x64/*
+*.cpp*.TMP
+*.h*.TMP

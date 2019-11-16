@@ -71,7 +71,7 @@ void ComputeFeatureVector(Mat &m, Point2f& startCorner, Point2f& endCorner, Poin
 	Point2f joint2end = LinearComb(end, start, 1.0 * (dist - joint2endDist + e->joint[2]) / dist);
 
 	LineProcessor::Process(start, start2joint, [&](int x, int y) {e->colors1.push_back(m.at<Vec3b>(y, x)); return true; });
-	LineProcessor::Process(joint2end, end, [&](int x, int y) {e->colors2.push_back(m.at<Vec3b>(y, x)); return true; });
+	LineProcessor::Process(end, joint2end, [&](int x, int y) {e->colors2.push_back(m.at<Vec3b>(y, x)); return true; });
 }
 
 
@@ -169,15 +169,15 @@ double compare(uchar a, uchar b)
 	return 1.0 * (a - b ) * (a - b) / sum;
 }
 
-pair<double, int> feature(vector<Vec3b>& v1, vector<Vec3b>& v2)
+static pair<double, int> feature(vector<Vec3b>& v1, vector<Vec3b>& v2)
 {
 	int c = 0;
 	double diff = 0.0;
 
 	vector<Vec3b>::iterator it1 = v1.begin();
-	vector<Vec3b>::reverse_iterator it2 = v2.rbegin();
+	vector<Vec3b>::iterator it2 = v2.begin();
 
-	for (; it1 != v1.end() && it2 != v2.rend(); it1++, it2++)
+	for (; it1 != v1.end() && it2 != v2.end(); it1++, it2++)
 	{
 		diff += compare((*it1)[0], (*it2)[0]) + compare((*it1)[1], (*it2)[1]) + compare((*it1)[2], (*it2)[2]);
 		c++;
@@ -189,7 +189,7 @@ pair<double, int> feature(vector<Vec3b>& v1, vector<Vec3b>& v2)
 	return pair<double, int>(diff / c, penalty * 10);
 }
 
-pair<double, int> CompareFeatureVectors(edgeFeature* e1, edgeFeature* e2)
+pair<double, int> PuzzelRectange::CompareFeatureVectors(edgeFeature* e1, edgeFeature* e2)
 {
 	if (e1->isMaleJoint ^ e2->isMaleJoint && e1->hasJoint && e2->hasJoint)
 	{
@@ -552,4 +552,48 @@ void PuzzelRectange::MarkJointsOnOriginImage(Mat& image)
 			circle(image, p1, 2, joint.isMaleJoint ? Scalar(250, 255, 50) : Scalar(90, 30, 255), 3, LINE_AA);
 		}
 	}
+}
+
+static Point2f RotatePoint(Point2f p, float radians, Point2f rotatioPoint)
+{
+	float _sin = sin(radians);
+	float _cos = cos(radians);
+
+	p -= rotatioPoint;
+
+	Point2f rotatedPoint(
+		_cos * p.x - _sin * p.y,
+		_sin * p.x + _cos * p.y);
+
+	rotatedPoint += rotatioPoint;
+	return rotatedPoint;
+}
+
+Mat PuzzelRectange::ExtractPuzzelAndRotateEdgeToUp(int edgeIdx,int padding)
+{
+	Mat M, rotated, cropped;
+	Point2f rotationPoint = LinearComb(left, right, 0.5);
+	Point2f p = edgeFeatures[edgeIdx].end - edgeFeatures[edgeIdx].start;
+	float radius = atan2(p.y, p.x);
+	float degree = radius * 180 / M_PI;
+
+	Point2f p1 = RotatePoint(left, -radius, rotationPoint);
+	Point2f p2 = RotatePoint(right, -radius, rotationPoint);
+
+	M = getRotationMatrix2D(rotationPoint, degree, 1.0);
+	warpAffine(puzzelArea, rotated, M, puzzelArea.size(), INTER_CUBIC);
+
+	drawMarker(rotated, p1, Scalar(125, 200, 40));
+	drawMarker(rotated, p2, Scalar(125, 200, 40));
+
+	/*Point2f p3 = RotatePoint(edgeFeatures[edgeIdx].end, -radius, rotationPoint);
+	Point2f p4 = RotatePoint(edgeFeatures[edgeIdx].start, -radius, rotationPoint);
+	circle(rotated, LinearComb(p3, p4, 0.5), 3, Scalar(100, 200, 100), 3);*/
+
+	Size rect_size(abs(p1.x - p2.x), abs(p1.y - p2.y));
+	rect_size.width += padding * 2;
+	rect_size.height += padding * 2;
+
+	getRectSubPix(rotated, rect_size, rotationPoint, cropped);
+	return cropped;
 }
