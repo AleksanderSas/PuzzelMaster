@@ -29,6 +29,8 @@ private:
 	vector<Token*> CurrentHipothesis;
 	vector<Token*> PreviousHipothesis;
 
-	Token* addToken(Token* parent, PuzzelRectange* p, int rotation, int row, int columns);
+	void Initialize(std::vector<PuzzelRectange*>& puzzels);
+	void AddHipothesisForToken(Token* token, std::vector<PuzzelRectange*>& puzzels, int y, int columns);
+	void TruncateHipothesis();
 };
 

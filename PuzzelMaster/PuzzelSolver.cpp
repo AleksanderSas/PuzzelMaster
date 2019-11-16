@@ -71,26 +71,77 @@ static Token* GetUpperToken(Token* parent, int columns)
 	return parent;
 }
 
-Token* PuzzelSolver::addToken(Token* parent, PuzzelRectange* p, int rotation, int row, int columns)
-{
-	Token* token = new Token();
-	token->puzzel = p;
-	token->pozzelRotation = rotation;
-	token->score = parent->score;;
-	token->upper = GetUpperToken(parent, columns);
-	token->left = GetLeftToken(parent, row);
-	token->previous = parent;
-	token->row = row;
-
-	return token;
-}
-
 static bool compareTokens(Token* t1, Token* t2)
 {
 	return t1->score < t2->score;
 }
 
 void PuzzelSolver::Solve(vector<PuzzelRectange*>& puzzels, int columns, int rows)
+{
+	Initialize(puzzels);
+
+	//TODO: lepsza kolejunosc -> kaskadowo?
+	for (int y = 0; y < rows; y++)
+	{
+		for (int x = (y == 0? 1 : 0); x < columns; x++)
+		{
+			for (Token* token : PreviousHipothesis)
+			{
+				AddHipothesisForToken(token, puzzels, y, columns);
+			}
+
+			TruncateHipothesis();
+		}
+	}
+}
+
+void PuzzelSolver::AddHipothesisForToken(Token* token, std::vector<PuzzelRectange*>& puzzels, int y, int columns)
+{
+	auto usedPuzzelIDs = getUsedPuzzels(token);
+	for (PuzzelRectange* puzzel : puzzels)
+	{
+		if (usedPuzzelIDs.find(puzzel->id) != usedPuzzelIDs.end())
+		{
+			continue;
+		}
+		Token* left = GetLeftToken(token, y);
+		Token* upper = GetUpperToken(token, columns);
+		ScoreRotations(puzzel, left, upper);
+		for (int i = 0; i < 4; i++)
+		{
+			if (leftScores[i] > 99999)
+				continue;
+
+			Token* newToken = new Token();
+			newToken->puzzel = puzzel;
+			newToken->pozzelRotation = i;
+			newToken->upper = upper;
+			newToken->left = left;
+			newToken->previous = token;
+			newToken->row = y;
+
+			newToken->score = token->score + leftScores[i] + upperScores[i];
+			newToken->leftScore = leftScores[i];
+			newToken->upperScore = upperScores[i];
+
+			CurrentHipothesis.push_back(newToken);
+		}
+	}
+}
+
+void PuzzelSolver::TruncateHipothesis()
+{
+	sort(CurrentHipothesis.begin(), CurrentHipothesis.end(), compareTokens);
+	PreviousHipothesis.clear();
+	int range = MIN(MAX_HIPOTHESIS, CurrentHipothesis.size());
+	for (int i = 0; i < range; i++)
+	{
+		PreviousHipothesis.push_back(CurrentHipothesis[i]);
+	}
+	CurrentHipothesis.clear();
+}
+
+void PuzzelSolver::Initialize(std::vector<PuzzelRectange*>& puzzels)
 {
 	//PuzzelRectange* puzzel = puzzels[1];
 	for (PuzzelRectange* puzzel : puzzels)
@@ -104,6 +155,8 @@ void PuzzelSolver::Solve(vector<PuzzelRectange*>& puzzels, int columns, int rows
 			token->puzzel = puzzel;
 			token->pozzelRotation = i;
 			token->score = 0;
+			token->leftScore = 0;
+			token->upperScore = 0;
 			token->row = 0;
 			token->upper = nullptr;
 			token->left = nullptr;
@@ -112,54 +165,6 @@ void PuzzelSolver::Solve(vector<PuzzelRectange*>& puzzels, int columns, int rows
 			PreviousHipothesis.push_back(token);
 		}
 	}
-
-	//TODO: lepsza kolejunosc -> kaskadowo?
-	for (int y = 0; y < rows; y++)
-	{
-		for (int x = (y == 0? 1 : 0); x < columns; x++)
-		{
-			for (Token* token : PreviousHipothesis)
-			{
-				auto ps = getUsedPuzzels(token);
-				for (PuzzelRectange* puzzel : puzzels)
-				{
-					if (ps.find(puzzel->id) != ps.end())
-					{
-						continue;
-					}
-					Token* left = GetLeftToken(token, y);
-					Token* upper = GetUpperToken(token, columns);
-					ScoreRotations(puzzel, left, upper);
-					for (int i = 0; i < 4; i++)
-					{
-						if (leftScores[i] > 99999)
-							continue;
-						Token* t = addToken(token, puzzel, i, y, columns);
-						CurrentHipothesis.push_back(t);
-						t->score += leftScores[i] + upperScores[i];
-						t->leftScore = leftScores[i];
-						t->upperScore = upperScores[i];
-					}
-				}
-			}
-
-			sort(CurrentHipothesis.begin(), CurrentHipothesis.end(), compareTokens);
-			PreviousHipothesis.clear();
-			int range = MIN(MAX_HIPOTHESIS, CurrentHipothesis.size());
-			for (int i = 0; i < range; i++)
-			{
-				PreviousHipothesis.push_back(CurrentHipothesis[i]);
-			}
-			CurrentHipothesis.clear();
-		}
-	}
-}
-
-void mark(PuzzelRectange* p, int idx, Scalar& s)
-{
-	auto e = p->edgeFeatures[idx];
-	auto ppp = (e.start + e.end) / 2;
-	circle(p->puzzelArea, ppp, 3, s, 3);
 }
 
 Token* PuzzelSolver::GetBest(int nth)
