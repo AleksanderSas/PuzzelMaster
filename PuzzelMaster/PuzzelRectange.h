@@ -30,9 +30,9 @@ public:
 	Mat backgroundEdges;
 	Mat edges;
 	double score;
-	double hitScore;
+	double backgroundEdgeHitScore;
+	double imageEdgeHitScore;
 	double recScore;
-	double interestScore;
 	double areaScore;
 	double noneBackgroundScore;
 	int id;

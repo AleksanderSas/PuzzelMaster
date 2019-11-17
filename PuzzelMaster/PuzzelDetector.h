@@ -19,7 +19,7 @@ public:
 	void RemoveTooLongLines(cv::Mat& canny_output);
 
 	int cannEdgeThresh = 70;
-	int dilation_size = 2;
+	int dilation_size = 1;
 
 private: 
 	Mat ComputeEdgeMap(vector<vector<Point>>& contours);

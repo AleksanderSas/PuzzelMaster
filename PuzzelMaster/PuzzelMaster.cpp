@@ -112,7 +112,7 @@ void run()
 	}
 
 	auto solver = PuzzelSolver();
-	solver.Solve(puzzels, 2, 2);
+	solver.Solve(puzzels, 3, 2);
 	imshow("mosaic - solved 0", ComposeSelectedEdges(solver.GetBest(0)));
 	imshow("mosaic - solved 1", ComposeSelectedEdges(solver.GetBest(1)));
 	imshow("mosaic - solved 2", ComposeSelectedEdges(solver.GetBest(2)));
@@ -133,8 +133,8 @@ void run()
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 3, "w3");
 
 	imshow("mosaic - puzzels", ComposePuzzels(puzzels));
-	//imshow("mosaic - background edges", ComposeBackgroundEdges(puzzels));
-	//imshow("mosaic - edges", ComposeEdges(puzzels));
+	imshow("mosaic - background edges", ComposeBackgroundEdges(puzzels));
+	imshow("mosaic - edges", ComposeEdges(puzzels));
 
 	waitKey(1);
 }

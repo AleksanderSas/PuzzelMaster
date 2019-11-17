@@ -504,9 +504,9 @@ void PuzzelRectange::PrintScores()
 {
 	cout << " n=" << id
 		<< "\t total score=" << score
-		<< "  hit score=" << hitScore
+		<< "  background hit score=" << backgroundEdgeHitScore
+		<< "  image hit score=" << imageEdgeHitScore
 		<< "  rec score=" << recScore
-		<< "  har score=" << interestScore
 		<< "  area score=" << areaScore
 		<< "  bckg score=" << noneBackgroundScore
 		<< endl;

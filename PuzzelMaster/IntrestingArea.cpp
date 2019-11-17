@@ -1,5 +1,6 @@
 #include "IntrestingArea.h"
 #include "LineProcessor.h"
+#include "DebugFlags.h"
 
 IntrestingArea:: IntrestingArea(Mat areaImage, Mat edgeMap, Rect originRectange,int id, RotatedRect box):
 	AreaImage(areaImage), 
@@ -11,16 +12,10 @@ IntrestingArea:: IntrestingArea(Mat areaImage, Mat edgeMap, Rect originRectange,
 
 PuzzelRectange* IntrestingArea::findPuzzel(BackgroundSeparator* separator)
 {
-	Mat greyMat, xDeriv, yDeriv, score;
+	Mat greyMat, score;
 	cv::cvtColor(AreaImage, greyMat, CV_BGR2GRAY);
 
-	int ddepth = CV_16S;
-	/// Gradient X
-	Sobel(greyMat, xDeriv, ddepth, 1, 0, 3);
-	/// Gradient Y
-	Sobel(greyMat, yDeriv, ddepth, 0, 1, 3);
-
-	int maxCorners = 35;
+	int maxCorners = 45;
 	vector<Point2f> corners;
 	double qualityLevel = 0.004;
 	double minDistance = 8;
@@ -32,14 +27,14 @@ PuzzelRectange* IntrestingArea::findPuzzel(BackgroundSeparator* separator)
 		minDistance);
 	cout << "** Number of corners detected: " << corners.size() << endl;
 
-#if 0
+#if DRAW_CORNERS
 	for (auto it = corners.begin(); it != corners.end(); it++)
 	{
 		drawMarker(AreaImage, *it, Scalar(123, 231, 90));
 	}
 #endif
 
-	auto result = FindBestRectange(corners, xDeriv, yDeriv, separator);
+	auto result = FindBestRectange(corners, separator);
 	if (result != nullptr)
 	{
 		result->puzzelArea = AreaImage;
@@ -92,13 +87,6 @@ static double decide(Point2f& v1, Point2f& v2, double treshold = MIN_CROSS_PROD)
 	return result >= treshold ? result : 0.0;
 }
 
-static float GetHarrisScore(Point2f& p, Mat& xDeriv, Mat& yDeriv, float k = 0.04)
-{
-	float dx = abs(xDeriv.at<short>(p));
-	float dy = abs(yDeriv.at<short>(p));
-	return 1.0 * dx * dy - k * (dx - dy) * (dx - dy);
-}
-
 static Point2f GetVector(Point2f& a, Point2f& b)
 {
 	auto x = a.x - b.x;
@@ -116,7 +104,7 @@ static Point2f GetNormalizedVector(Point2f& a, Point2f& b)
 	return Point2f(x, y);
 }
 
-static float IsMoreOrLessRectange(PuzzelRectange* candidate, Mat& xDeriv, Mat& yDeriv)
+static float IsMoreOrLessRectange(PuzzelRectange* candidate)
 {
 	Point2f v1 = GetNormalizedVector(candidate->left, candidate->upper);
 	Point2f v2 = GetNormalizedVector(candidate->upper, candidate->right);
@@ -125,12 +113,6 @@ static float IsMoreOrLessRectange(PuzzelRectange* candidate, Mat& xDeriv, Mat& y
 
 	double rectangularityMeasure = decide(v1, v2) * decide(v2, v3) * decide(v3, v4) * decide(v4, v1);
 	candidate->recScore = rectangularityMeasure;
-	double harrisMeasure = GetHarrisScore(candidate->left, xDeriv, yDeriv)
-		* GetHarrisScore(candidate->lower, xDeriv, yDeriv)
-		* GetHarrisScore(candidate->right, xDeriv, yDeriv)
-		* GetHarrisScore(candidate->upper, xDeriv, yDeriv);
-	harrisMeasure = sqrt(sqrt(sqrt(harrisMeasure)));
-	candidate->interestScore = harrisMeasure;
 
 	if (rectangularityMeasure > 0.1)
 	{
@@ -174,16 +156,17 @@ static void ComputeEdgeHits(Mat& edgeMap, PuzzelRectange* puzzel, int& hit, int&
 	LineProcessor::Process(puzzel->right, puzzel->upper, counter);
 }
 
-static void ComputeEdgeHitScore(Mat& edges, PuzzelRectange* candidate)
+static double ComputeHitScore(Mat& edges, PuzzelRectange* candidate)
 {
 	int hit = 0;
 	int miss = 0;
 	ComputeEdgeHits(edges, candidate, hit, miss);
-	candidate->hitScore = 0.0;
+	double score = 0.0;
 	if (hit + miss > 0)
 	{
-		candidate->hitScore = 1.0 * hit / (hit + miss);
+		score = 1.0 * hit / (hit + miss);
 	}
+	return score;
 }
 
 static Mat getBackgroundMap(Mat& input, BackgroundSeparator* separator)
@@ -209,7 +192,7 @@ static Mat getBackgroundMap(Mat& input, BackgroundSeparator* separator)
 	return output;
 }
 
-PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Mat& xDeriv, Mat& yDeriv, BackgroundSeparator *separator)
+PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, BackgroundSeparator *separator)
 {
 	auto hSorted = vector<Point2f>(corners);
 	sort(hSorted.begin(), hSorted.end(), hComparer);
@@ -257,18 +240,20 @@ PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Mat& 
 					candidate->puzzelArea = AreaImage;
 					candidate->backgroundEdges = edg;
 
-					double totalScore = IsMoreOrLessRectange(candidate, xDeriv, yDeriv);
+					double totalScore = IsMoreOrLessRectange(candidate);
 					if (totalScore > 0.0)
 					{
 						float noneBackgroundScore = candidate->scoreArea(separator);
 						//totalScore *= noneBackgroundScore;
-						ComputeEdgeHitScore(edg, candidate);
+						candidate->backgroundEdgeHitScore = ComputeHitScore(edg, candidate);
+						candidate->imageEdgeHitScore = ComputeHitScore(EdgeMap, candidate);
 						
-						if (candidate->hitScore < 0.15)
+						if (candidate->backgroundEdgeHitScore < 0.15)
 						{
 							continue;
 						}
-						totalScore *= candidate->hitScore;
+						totalScore *= candidate->backgroundEdgeHitScore;
+						//totalScore *= candidate->imageEdgeHitScore;
 						candidate->score = totalScore;
 						cout << "C  ";
 						candidate->PrintScores(); 

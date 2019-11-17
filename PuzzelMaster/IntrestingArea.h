@@ -20,7 +20,7 @@ public:
 	Rect OriginRectange;
 
 private:
-	PuzzelRectange* FindBestRectange(vector<Point2f>& corners, Mat& xDeriv, Mat& yDeriv, BackgroundSeparator* separator);
+	PuzzelRectange* FindBestRectange(vector<Point2f>& corners, BackgroundSeparator* separator);
 
 	int id;
 	Mat AreaImage;

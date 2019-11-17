@@ -171,6 +171,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BackgroundSeparator.h" />
+    <ClInclude Include="DebugFlags.h" />
     <ClInclude Include="IntrestingArea.h" />
     <ClInclude Include="KMeans.h" />
     <ClInclude Include="LineProcessor.h" />
