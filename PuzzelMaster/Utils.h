@@ -1,14 +1,7 @@
 #pragma once
 #include <string>
 
-
 using namespace std;
-
-union rgbExtractor
-{
-	unsigned int color;
-	unsigned char bytes[4];
-};
 
 class Utils
 {

@@ -1,7 +1,6 @@
 #ifndef __KMeans_header__
 #define __KMeans_header__
 
-#include "opencv2/imgcodecs.hpp"
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
 #include <iostream>
