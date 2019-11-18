@@ -50,7 +50,7 @@ static set<int> getUsedPuzzels(Token* token)
 	while (token != nullptr)
 	{
 		puzzelIds.insert(token->puzzel->id);
-		token = token->previous;
+		token = token->previous.get();
 	}
 	return puzzelIds;
 }
@@ -66,7 +66,7 @@ static Token* GetUpperToken(Token* parent, int columns)
 	{
 		if (parent == nullptr)
 			break;
-		parent = parent->previous;
+		parent = parent->previous.get();
 	}
 	return parent;
 }
@@ -93,10 +93,12 @@ void PuzzelSolver::Solve(vector<PuzzelRectange*>& puzzels, int columns, int rows
 			TruncateHipothesis();
 		}
 	}
+	cout << endl << "Token remains: " << Token::counter <<  endl;
 }
 
 void PuzzelSolver::AddHipothesisForToken(Token* token, std::vector<PuzzelRectange*>& puzzels, int y, int columns)
 {
+	shared_ptr<Token> parent(token);
 	auto usedPuzzelIDs = getUsedPuzzels(token);
 	for (PuzzelRectange* puzzel : puzzels)
 	{
@@ -117,7 +119,7 @@ void PuzzelSolver::AddHipothesisForToken(Token* token, std::vector<PuzzelRectang
 			newToken->pozzelRotation = i;
 			newToken->upper = upper;
 			newToken->left = left;
-			newToken->previous = token;
+			newToken->previous = parent;
 			newToken->row = y;
 
 			newToken->score = token->score + leftScores[i] + upperScores[i];
@@ -137,6 +139,10 @@ void PuzzelSolver::TruncateHipothesis()
 	for (int i = 0; i < range; i++)
 	{
 		PreviousHipothesis.push_back(CurrentHipothesis[i]);
+	}
+	for (int i = range; i < CurrentHipothesis.size(); i++)
+	{
+		delete CurrentHipothesis[i];
 	}
 	CurrentHipothesis.clear();
 }
@@ -160,7 +166,6 @@ void PuzzelSolver::Initialize(std::vector<PuzzelRectange*>& puzzels)
 			token->row = 0;
 			token->upper = nullptr;
 			token->left = nullptr;
-			token->previous = nullptr;
 
 			PreviousHipothesis.push_back(token);
 		}
@@ -175,7 +180,7 @@ Token* PuzzelSolver::GetBest(int nth)
 void PuzzelSolver::PrintHistory(int nth)
 {
 	Token* current = PreviousHipothesis[nth];
-	Token* previour = current->previous;
+	Token* previour = current->previous.get();
 	string message;
 	char buffer[128];
 	while (previour != nullptr)
@@ -192,7 +197,7 @@ void PuzzelSolver::PrintHistory(int nth)
 			score);
 		message = string(buffer) + message;
 		current = previour;
-		previour = previour->previous;
+		previour = previour->previous.get();
 	}
 	cout << message;
 }

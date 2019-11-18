@@ -89,7 +89,7 @@ Mat ComposeSelectedEdges(Token* lastToken)
 	while (lastToken != nullptr)
 	{
 		tokens.insert(tokens.begin(), lastToken);
-		lastToken = lastToken->previous;
+		lastToken = lastToken->previous.get();
 	}
 	auto selector = [](Token* t) {return t->puzzel->ExtractPuzzelAndRotateEdgeToUp((t->pozzelRotation + 1) % 4, 20); };
 	Mat mosaic = ComposePuzzels<Vec3b, Token>(tokens, selector, [](Token* t) {return to_string(t->puzzel->id); }, Scalar(0, 255, 0));

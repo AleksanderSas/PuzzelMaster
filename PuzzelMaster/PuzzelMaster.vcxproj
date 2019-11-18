@@ -167,6 +167,7 @@
     <ClCompile Include="PuzzelDetector.cpp" />
     <ClCompile Include="PuzzelMaster.cpp" />
     <ClCompile Include="PuzzelSolver.cpp" />
+    <ClCompile Include="Token.cpp" />
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -179,6 +180,7 @@
     <ClInclude Include="PuzzelDetector.h" />
     <ClInclude Include="PuzzelSolver.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="Token.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>
   <ItemGroup>

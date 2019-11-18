@@ -1,21 +1,6 @@
 #pragma once
-#include "PuzzelRectange.h"
 #include <vector>
-
-typedef struct token
-{
-	//edge idx of left edge
-	int pozzelRotation;
-	unsigned int score;
-	double leftScore;
-	double upperScore;
-	int row;
-	PuzzelRectange* puzzel;
-	struct token* left;
-	struct token* upper;
-	struct token* previous;
-} Token;
-
+#include "Token.h"
 
 #define MAX_HIPOTHESIS 100
 class PuzzelSolver
