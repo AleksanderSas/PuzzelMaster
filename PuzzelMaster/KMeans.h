@@ -20,7 +20,7 @@ struct Centre
 class KMeans
 {
 public:
-	KMeans(int heigth, int width, int MIN_SQUARE_DISTANCE = 1600, int INIT_GRID_DENSITY = 10);
+	KMeans(int heigth, int width);
 	~KMeans();
 	int Pass(vector<vector<cv::Point> > *contours);
 	void DrawBoxes(Mat& img);
@@ -36,8 +36,18 @@ private:
 	int heigth;
 	int width;
 
-	int MIN_SQUARE_DISTANCE = 1600;
-	int INIT_GRID_DENSITY = 10;
+#if 0
+
+#define MIN_SQUARE_DISTANCE  1600
+#define INIT_GRID_DENSITY 10
+
+#else
+
+#define MIN_SQUARE_DISTANCE  16000
+#define INIT_GRID_DENSITY 10
+
+#endif
+
 };
 #endif  
 

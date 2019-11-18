@@ -3,7 +3,7 @@
 #include "LineProcessor.h"
 #include "DebugFlags.h"
 
-PuzzelDetector::PuzzelDetector(Mat& input) : image(input), knn(input.cols, input.rows, MIN_SQUARE_DISTANCE, INIT_GRID_DENSITY)
+PuzzelDetector::PuzzelDetector(Mat& input) : image(input), knn(input.cols, input.rows)
 {
 	cvtColor(input, image_gray, COLOR_BGR2GRAY);
 	blur(image_gray, image_gray, Size(3, 3));

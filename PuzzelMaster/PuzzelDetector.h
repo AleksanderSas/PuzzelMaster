@@ -30,16 +30,5 @@ private:
 	KMeans knn;
 
 #define MIN_LINE_LEN_TO_REMOVE 80
-#if 0
-
-#define MIN_SQUARE_DISTANCE  1600
-#define INIT_GRID_DENSITY 10
-
-#else
-
-#define MIN_SQUARE_DISTANCE  16000
-#define INIT_GRID_DENSITY 10
-
-#endif
 };
 

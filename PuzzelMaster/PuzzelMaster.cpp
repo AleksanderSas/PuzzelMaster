@@ -111,6 +111,7 @@ void run()
 		puzzel->MarkJointsOnOriginImage(src);
 	}
 
+#if ENABLE_SOLVER
 	auto solver = PuzzelSolver();
 	solver.Solve(puzzels, 3, 2);
 	imshow("mosaic - solved 0", ComposeSelectedEdges(solver.GetBest(0)));
@@ -124,6 +125,7 @@ void run()
 	cout << "\n3-RD:\n";
 	solver.PrintHistory(2);
 	waitKey(1);
+#endif
 
 	imshow("corners", src);
 	int puzzelNr = 1;

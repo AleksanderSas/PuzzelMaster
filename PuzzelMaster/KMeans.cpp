@@ -5,12 +5,10 @@
 #include "BackgroundSeparator.h"
 #include "LineProcessor.h"
 
-KMeans::KMeans(int heigth, int width, int MIN_SQUARE_DISTANCE, int INIT_GRID_DENSITY)
+KMeans::KMeans(int heigth, int width)
 {
 	this->width = width;
 	this->heigth = heigth;
-	this->MIN_SQUARE_DISTANCE = MIN_SQUARE_DISTANCE;
-	this->INIT_GRID_DENSITY = INIT_GRID_DENSITY;
 
 	int centriesPerRow = INIT_GRID_DENSITY;
 	int stepX = (width - 100) / (centriesPerRow - 1);
