@@ -41,9 +41,14 @@ private:
 #define MIN_SQUARE_DISTANCE  1600
 #define INIT_GRID_DENSITY 10
 
-#else
+#elseif 0
 
 #define MIN_SQUARE_DISTANCE  16000
+#define INIT_GRID_DENSITY 10
+
+#else
+
+#define MIN_SQUARE_DISTANCE  25000
 #define INIT_GRID_DENSITY 10
 
 #endif

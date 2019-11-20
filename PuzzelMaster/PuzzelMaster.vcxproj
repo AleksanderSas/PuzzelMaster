@@ -163,6 +163,7 @@
     <ClCompile Include="IntrestingArea.cpp" />
     <ClCompile Include="KMeans.cpp" />
     <ClCompile Include="LineProcessor.cpp" />
+    <ClCompile Include="Presenter.cpp" />
     <ClCompile Include="PuzzelRectange.cpp" />
     <ClCompile Include="PuzzelDetector.cpp" />
     <ClCompile Include="PuzzelMaster.cpp" />
@@ -176,6 +177,7 @@
     <ClInclude Include="IntrestingArea.h" />
     <ClInclude Include="KMeans.h" />
     <ClInclude Include="LineProcessor.h" />
+    <ClInclude Include="Presenter.h" />
     <ClInclude Include="PuzzelRectange.h" />
     <ClInclude Include="PuzzelDetector.h" />
     <ClInclude Include="PuzzelSolver.h" />

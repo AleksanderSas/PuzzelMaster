@@ -1,4 +1,5 @@
 #include "BackgroundSeparator.h"
+#include "Presenter.h"
 
 BackgroundSeparator::BackgroundSeparator(Mat& img, vector<Rect> puzzelCandidateAreas)
 	:image(img)
@@ -86,7 +87,7 @@ Mat BackgroundSeparator::getMatchMap()
 void BackgroundSeparator::showImg(const char* name)
 {
 	Mat probablityMap = getMatchMap();
-	imshow(name, probablityMap);
+	Presenter::ShowScaledImage(name, probablityMap);
 }
 
 float& BackgroundSeparator::getQubeBackgroundBin(Vec3b *p)

@@ -9,6 +9,7 @@
 #include "KMeans.h"
 #include "PuzzelSolver.h"
 #include "math.h"
+#include "Presenter.h"
 
 using namespace cv;
 using namespace std;
@@ -20,6 +21,7 @@ PuzzelDetector* puzzelDetector;
 // D:\puzzle\2\test_2_2_mini.jpg
 // D:\puzzle\test_3.jpg
 // D:\puzzle\3\test_3_1.jpg
+// D:\puzzle\3\test_3_3.jpg
 
 template<typename T, typename S>
 Mat ComposePuzzels(vector<S*>& puzzels, function<Mat(S*)> selector, function<string(S*)> label, Scalar textColor)
@@ -62,6 +64,7 @@ Mat ComposePuzzels(vector<S*>& puzzels, function<Mat(S*)> selector, function<str
 		}
 		currentRow++;
 	}
+
 	return mosaic;
 }
 
@@ -114,9 +117,9 @@ void run()
 #if ENABLE_SOLVER
 	auto solver = PuzzelSolver();
 	solver.Solve(puzzels, 3, 2);
-	imshow("mosaic - solved 0", ComposeSelectedEdges(solver.GetBest(0)));
-	imshow("mosaic - solved 1", ComposeSelectedEdges(solver.GetBest(1)));
-	imshow("mosaic - solved 2", ComposeSelectedEdges(solver.GetBest(2)));
+	Presenter::ShowScaledImage("mosaic - solved 0", ComposeSelectedEdges(solver.GetBest(0)));
+	Presenter::ShowScaledImage("mosaic - solved 1", ComposeSelectedEdges(solver.GetBest(1)));
+	Presenter::ShowScaledImage("mosaic - solved 2", ComposeSelectedEdges(solver.GetBest(2)));
 
 	cout << "\n1-ST:\n";
 	solver.PrintHistory(0);
@@ -127,18 +130,17 @@ void run()
 	waitKey(1);
 #endif
 
-	imshow("corners", src);
+#if MATCH_PUZZEL
+	Presenter::ShowScaledImage("corners", src);
 	int puzzelNr = 1;
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 0, "w0");
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 1, "w1");
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 2, "w2");
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 3, "w3");
-
-	imshow("mosaic - puzzels", ComposePuzzels(puzzels));
-	imshow("mosaic - background edges", ComposeBackgroundEdges(puzzels));
-	imshow("mosaic - edges", ComposeEdges(puzzels));
-
-	waitKey(1);
+#endif
+	Presenter::ShowScaledImage("mosaic - puzzels", ComposePuzzels(puzzels));
+	Presenter::ShowScaledImage("mosaic - background edges", ComposeBackgroundEdges(puzzels));
+	Presenter::ShowScaledImage("mosaic - edges", ComposeEdges(puzzels));
 }
 
 int main(int argc, char** argv)
@@ -154,7 +156,7 @@ int main(int argc, char** argv)
 
 	const char* source_window = "Source";
 	namedWindow(source_window);
-	imshow(source_window, src);
+	Presenter::ShowScaledImage(source_window, src);
 	run();
 	waitKey();
 	return 0;

@@ -2,6 +2,7 @@
 #include "IntrestingArea.h"
 #include "LineProcessor.h"
 #include "DebugFlags.h"
+#include "Presenter.h"
 
 PuzzelDetector::PuzzelDetector(Mat& input) : image(input), knn(input.cols, input.rows)
 {
@@ -46,7 +47,7 @@ void PuzzelDetector::DrawContours(vector<vector<Point> > &contours, vector<Vec4i
 		}
 	}
 
-	imshow("Contours", contourDrawing);
+	Presenter::ShowScaledImage("Contours", contourDrawing);
 	waitKey(1);
 }
 
@@ -73,9 +74,10 @@ vector<PuzzelRectange*> PuzzelDetector::DetectPuzzels()
 	Mat edgeMap = ComputeEdgeMap(*contours);
 
 	int change = 1;
+	Mat contoursWithAreas;
 	while (change > 0)
 	{
-		Mat contoursWithAreas = contourDrawing.clone();
+		contoursWithAreas = contourDrawing.clone();
 		change = knn.Pass(contours);
 		knn.DrawBoxes(contoursWithAreas);
 
@@ -88,6 +90,7 @@ vector<PuzzelRectange*> PuzzelDetector::DetectPuzzels()
 		imshow("Contours", contoursWithAreas);
 		waitKey(1);
 	}
+	Presenter::ShowScaledImage("Contours", contoursWithAreas);
 
 	vector<IntrestingArea> puzzelAreas = knn.GetPuzzels(image, edgeMap);
 	vector<PuzzelRectange*> puzzels;
@@ -116,7 +119,7 @@ void PuzzelDetector::RemoveTooLongLines(cv::Mat& canny_output)
 {
 	vector<Vec4i> lines;
 	Mat edges = Mat::zeros(canny_output.rows, canny_output.cols, CV_8UC1);
-	HoughLinesP(canny_output, lines, 1, 0.01, 15, MIN_LINE_LEN_TO_REMOVE, 3);
+	HoughLinesP(canny_output, lines, 1, 0.01, MIN_LINE_LEN_TO_REMOVE, MIN_LINE_LEN_TO_REMOVE, 5);
 	for (size_t i = 0; i < lines.size(); i++)
 	{
 		Vec4i l = lines[i];
@@ -125,6 +128,6 @@ void PuzzelDetector::RemoveTooLongLines(cv::Mat& canny_output)
 	}
 
 #if DRAW_TOO_LONG_LINES
-	imshow("too long lines", edges);
+	Presenter::ShowScaledImage("too long lines", edges);
 #endif
 }
