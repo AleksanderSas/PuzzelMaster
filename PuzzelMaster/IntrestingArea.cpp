@@ -10,7 +10,7 @@ IntrestingArea:: IntrestingArea(Mat areaImage, Mat edgeMap, Rect originRectange,
 	box(box)
 {}
 
-PuzzelRectange* IntrestingArea::findPuzzel(BackgroundSeparator* separator)
+PuzzelRectange* IntrestingArea::findPuzzel(BackgroundSeparator* separator, unsigned int& idSequence)
 {
 	Mat greyMat, score;
 	cv::cvtColor(AreaImage, greyMat, CV_BGR2GRAY);
@@ -25,7 +25,7 @@ PuzzelRectange* IntrestingArea::findPuzzel(BackgroundSeparator* separator)
 		maxCorners,
 		qualityLevel,
 		minDistance);
-	cout << "** Number of corners detected: " << corners.size() << endl;
+	cout << "** nr: " << id << "  Number of corners detected: " << corners.size() << endl;
 
 #if DRAW_CORNERS
 	for (auto it = corners.begin(); it != corners.end(); it++)
@@ -34,7 +34,7 @@ PuzzelRectange* IntrestingArea::findPuzzel(BackgroundSeparator* separator)
 	}
 #endif
 
-	auto result = FindBestRectange(corners, separator);
+	auto result = FindBestRectange(corners, separator, idSequence);
 	if (result != nullptr)
 	{
 		result->puzzelArea = AreaImage;
@@ -192,12 +192,11 @@ static Mat getBackgroundMap(Mat& input, BackgroundSeparator* separator)
 	return output;
 }
 
-PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, BackgroundSeparator *separator)
+PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, BackgroundSeparator *separator, unsigned int& idSequence)
 {
 	auto hSorted = vector<Point2f>(corners);
 	sort(hSorted.begin(), hSorted.end(), hComparer);
 
-	int counter = 0;
 	PuzzelRectange* bestRects = nullptr;
 	Mat b = getBackgroundMap(AreaImage, separator);
 	Mat edg = getEdgeMapFromBackground(b);
@@ -236,7 +235,7 @@ PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Backg
 						continue;
 					}
 
-					PuzzelRectange* candidate = new PuzzelRectange(*left, *right, *lower, *upper, counter++, separator, box);
+					PuzzelRectange* candidate = new PuzzelRectange(*left, *right, *lower, *upper, idSequence++, separator, box);
 					candidate->puzzelArea = AreaImage;
 					candidate->backgroundEdges = edg;
 

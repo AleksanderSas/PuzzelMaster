@@ -10,6 +10,7 @@
 #include "PuzzelSolver.h"
 #include "math.h"
 #include "Presenter.h"
+#include "DebugFlags.h"
 
 using namespace cv;
 using namespace std;
@@ -130,8 +131,8 @@ void run()
 	waitKey(1);
 #endif
 
-#if MATCH_PUZZEL
 	Presenter::ShowScaledImage("corners", src);
+#if MATCH_PUZZEL
 	int puzzelNr = 1;
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 0, "w0");
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 1, "w1");
@@ -158,6 +159,7 @@ int main(int argc, char** argv)
 	namedWindow(source_window);
 	Presenter::ShowScaledImage(source_window, src);
 	run();
+	cout << "FINISHED";
 	waitKey();
 	return 0;
 }

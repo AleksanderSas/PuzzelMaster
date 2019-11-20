@@ -14,12 +14,12 @@ class IntrestingArea
 {
 public:
 	IntrestingArea(Mat areaImage, Mat edgeMap, Rect originRectange, int id, RotatedRect box);
-	PuzzelRectange* findPuzzel(BackgroundSeparator* separator);
+	PuzzelRectange* findPuzzel(BackgroundSeparator* separator, unsigned int& idSequence);
 
 	Rect OriginRectange;
 
 private:
-	PuzzelRectange* FindBestRectange(vector<Point2f>& corners, BackgroundSeparator* separator);
+	PuzzelRectange* FindBestRectange(vector<Point2f>& corners, BackgroundSeparator* separator, unsigned int& idSequence);
 
 	int id;
 	Mat AreaImage;

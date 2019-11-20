@@ -105,9 +105,10 @@ vector<PuzzelRectange*> PuzzelDetector::DetectPuzzels()
 	//TODO: delete
 	BackgroundSeparator* separator = new BackgroundSeparator(image, anotherMyObjectList);
 
+	unsigned int idSequence = 0;
 	for (IntrestingArea& ia : puzzelAreas)
 	{
-		PuzzelRectange* puzzel = ia.findPuzzel(separator);
+		PuzzelRectange* puzzel = ia.findPuzzel(separator, idSequence);
 		if (puzzel != nullptr)
 			puzzels.push_back(puzzel);
 	}
