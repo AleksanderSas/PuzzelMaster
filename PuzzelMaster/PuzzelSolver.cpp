@@ -149,7 +149,7 @@ void PuzzelSolver::TruncateHipothesis()
 
 void PuzzelSolver::Initialize(std::vector<PuzzelRectange*>& puzzels)
 {
-	//PuzzelRectange* puzzel = puzzels[1];
+	//PuzzelRectange* puzzel = puzzels[3];
 	for (PuzzelRectange* puzzel : puzzels)
 	{
 		for (int i = 0; i < 4; i++)
@@ -200,4 +200,42 @@ void PuzzelSolver::PrintHistory(int nth)
 		previour = previour->previous.get();
 	}
 	cout << message;
+}
+
+bool AreTheSame(Token* h1, Token* t2)
+{
+	set<int> ids;
+	while (t2 != NULL)
+	{
+		ids.insert(t2->puzzel->id);
+		t2 = t2->previous.get();
+	}
+
+	while (t2 != NULL)
+	{
+		if (ids.find(t2->puzzel->id) == ids.end())
+			return false;
+		t2 = t2->previous.get();
+	}
+	return true;
+}
+
+void PuzzelSolver::RemoveDuplicateds()
+{
+	vector<int> toRemove;
+	int previousScore = -1;
+	for (int i = 0; i < PreviousHipothesis.size(); i++)
+	{
+		if (PreviousHipothesis[i]->score == previousScore && AreTheSame(PreviousHipothesis[i], PreviousHipothesis[i-1]))
+		{
+			toRemove.push_back(i);
+		}
+		previousScore = PreviousHipothesis[i]->score;
+	}
+
+	for (auto it = toRemove.rbegin(); it != toRemove.rend(); it++)
+	{
+		auto hypothesisToRemove = PreviousHipothesis.begin() + *it;
+		PreviousHipothesis.erase(hypothesisToRemove);
+	}
 }

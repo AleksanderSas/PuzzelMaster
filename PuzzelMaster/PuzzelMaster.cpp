@@ -21,11 +21,19 @@ PuzzelDetector* puzzelDetector;
 // D:\puzzle\2\test_2_2.jpg
 // D:\puzzle\2\test_2_2_mini.jpg
 // D:\puzzle\test_3.jpg
+// D:\puzzle\test.jpg
 // D:\puzzle\3\test_3_1.jpg
 // D:\puzzle\3\test_3_3.jpg
+// D:\puzzle\4\test_1.jpg
 
 template<typename T, typename S>
 Mat ComposePuzzels(vector<S*>& puzzels, function<Mat(S*)> selector, function<string(S*)> label, Scalar textColor)
+{
+	return ComposePuzzels<T, S>(puzzels, selector, label, textColor, ceil(sqrt(puzzels.size())));
+}
+
+template<typename T, typename S>
+Mat ComposePuzzels(vector<S*>& puzzels, function<Mat(S*)> selector, function<string(S*)> label, Scalar textColor, int puzzelsPerRow)
 {
 	int maxCols = 0;
 	int maxRows = 0;
@@ -43,7 +51,6 @@ Mat ComposePuzzels(vector<S*>& puzzels, function<Mat(S*)> selector, function<str
 		}
 	}
 
-	int puzzelsPerRow = ceil(sqrt(puzzels.size()));
 	int rowNumber = ceil(1.0 * puzzels.size() / puzzelsPerRow);
 	Mat mosaic = Mat::zeros(maxRows * rowNumber, maxCols * puzzelsPerRow, selector(puzzels[0]).type());
 
@@ -84,7 +91,7 @@ Mat ComposeEdges(vector<PuzzelRectange*>& puzzels)
 	return ComposePuzzels<unsigned char, PuzzelRectange>(puzzels, [](PuzzelRectange* p) {return p->edges; }, [](PuzzelRectange* p) {return to_string(p->id); }, Scalar(255));
 }
 
-Mat ComposeSelectedEdges(Token* lastToken)
+Mat ComposeSelectedEdges(Token* lastToken, int puzzelsPerRow)
 {
 	char buffer[255];
 	sprintf_s(buffer, "score:  %d", lastToken->score);
@@ -96,7 +103,7 @@ Mat ComposeSelectedEdges(Token* lastToken)
 		lastToken = lastToken->previous.get();
 	}
 	auto selector = [](Token* t) {return t->puzzel->ExtractPuzzelAndRotateEdgeToUp((t->pozzelRotation + 1) % 4, 20); };
-	Mat mosaic = ComposePuzzels<Vec3b, Token>(tokens, selector, [](Token* t) {return to_string(t->puzzel->id); }, Scalar(0, 255, 0));
+	Mat mosaic = ComposePuzzels<Vec3b, Token>(tokens, selector, [](Token* t) {return to_string(t->puzzel->id); }, Scalar(0, 255, 0), puzzelsPerRow);
 	putText(mosaic, buffer, Point(5, mosaic.rows - 12), HersheyFonts::FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
 	return mosaic;
 }
@@ -117,10 +124,15 @@ void run()
 
 #if ENABLE_SOLVER
 	auto solver = PuzzelSolver();
-	solver.Solve(puzzels, 3, 2);
-	Presenter::ShowScaledImage("mosaic - solved 0", ComposeSelectedEdges(solver.GetBest(0)));
-	Presenter::ShowScaledImage("mosaic - solved 1", ComposeSelectedEdges(solver.GetBest(1)));
-	Presenter::ShowScaledImage("mosaic - solved 2", ComposeSelectedEdges(solver.GetBest(2)));
+	int columnsToSolve = 3;
+	solver.Solve(puzzels, columnsToSolve, 3);
+	solver.RemoveDuplicateds();
+
+	for (int i = 0; i < 5; i++)
+	{
+		string label = string("mosaic - solved ") + to_string(i);
+		Presenter::ShowScaledImage(label.c_str(), ComposeSelectedEdges(solver.GetBest(i), columnsToSolve));
+	}
 
 	cout << "\n1-ST:\n";
 	solver.PrintHistory(0);
@@ -133,7 +145,7 @@ void run()
 
 	Presenter::ShowScaledImage("corners", src);
 #if MATCH_PUZZEL
-	int puzzelNr = 1;
+	int puzzelNr = 0;
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 0, "w0");
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 1, "w1");
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 2, "w2");
