@@ -3,6 +3,7 @@
 #include "KMeans.h"
 #include "Utils.h"
 #include "LineProcessor.h"
+#include "DebugFlags.h"
 
 #define M_PI 3.14159265358979323846
 
@@ -56,22 +57,28 @@ Point2f LinearComb(Point2f p1, Point2f p2, float p1Weigth)
 	return Point2f(p1.x * p1Weigth + p2.x * (1 - p1Weigth), p1.y * p1Weigth + p2.y * (1 - p1Weigth));
 }
 
-void ComputeFeatureVector(Mat &m, Point2f& startCorner, Point2f& endCorner, Point2f& startBackSide, Point2f& endBackSide, edgeFeature* e)
+void ComputeFeatureVector(Mat &m, Point2f startCorner, Point2f endCorner, Point2f startBackSide, Point2f endBackSide, Vec3i joint, EdgeFeatureVector *v, float factor)
 {
-	float factor = 0.95f;
 	Point2f start = LinearComb(startCorner, startBackSide, factor);
 	Point2f end = LinearComb(endCorner, endBackSide, factor);
-	e->len = (int)hypot(start.x - end.x, start.y - end.y);
+	v->len = (int)hypot(start.x - end.x, start.y - end.y);
 
-	int start2jointDist = hypot(e->joint[0] - start.x, e->joint[1] - start.y);
-	int joint2endDist = hypot(e->joint[0] - end.x, e->joint[1] - end.y);
+	int start2jointDist = hypot(joint[0] - start.x, joint[1] - start.y);
+	int joint2endDist = hypot(joint[0] - end.x, joint[1] - end.y);
 	int dist = start2jointDist + joint2endDist;
 
-	Point2f start2joint = LinearComb(start, end, 1.0 * (dist - start2jointDist + e->joint[2] )/ dist);
-	Point2f joint2end = LinearComb(end, start, 1.0 * (dist - joint2endDist + e->joint[2]) / dist);
+	Point2f start2joint = LinearComb(start, end, 1.0 * (dist - start2jointDist + joint[2] )/ dist);
+	Point2f joint2end = LinearComb(end, start, 1.0 * (dist - joint2endDist + joint[2]) / dist);
 
-	LineProcessor::Process(start, start2joint, [&](int x, int y) {e->colors1.push_back(m.at<Vec3b>(y, x)); return true; });
-	LineProcessor::Process(end, joint2end, [&](int x, int y) {e->colors2.push_back(m.at<Vec3b>(y, x)); return true; });
+	LineProcessor::Process(start, start2joint, [&](int x, int y) {v->colors1.push_back(m.at<Vec3b>(y, x)); return true; });
+	LineProcessor::Process(end, joint2end, [&](int x, int y) {v->colors2.push_back(m.at<Vec3b>(y, x)); return true; });
+}
+
+void ComputeFeatureVector(Mat& m, Point2f startCorner, Point2f endCorner, Point2f startBackSide, Point2f endBackSide, edgeFeature* e)
+{
+	ComputeFeatureVector(m, startCorner, endCorner, startBackSide, endBackSide, e->joint, e->colors, 0.96f);
+	ComputeFeatureVector(m, startCorner, endCorner, startBackSide, endBackSide, e->joint, e->colors + 1, 0.93f);
+	ComputeFeatureVector(m, startCorner, endCorner, startBackSide, endBackSide, e->joint, e->colors + 2, 0.90f);
 }
 
 
@@ -169,6 +176,28 @@ double compare(uchar a, uchar b)
 	return 1.0 * (a - b ) * (a - b) / sum;
 }
 
+unsigned int squareLen(Vec3b v)
+{
+	return(unsigned int)v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+}
+
+double len(Vec3b v) 
+{ 
+	return sqrt(squareLen(v));
+}
+
+uchar substructAbs(uchar a, uchar b)
+{
+	return a >= b ? a - b : b - a;
+}
+
+double compare(Vec3b a, Vec3b b)
+{
+	Vec3b diff(substructAbs(a[0], b[0]), substructAbs(a[1], b[1]), substructAbs(a[2], b[2]));
+
+	return 1.0 * squareLen(diff) / (len(a) + len(b));
+}
+
 static double feature(vector<Vec3b>& v1, vector<Vec3b>& v2)
 {
 	int c = 0;
@@ -179,7 +208,8 @@ static double feature(vector<Vec3b>& v1, vector<Vec3b>& v2)
 
 	for (; it1 != v1.end() && it2 != v2.end(); it1++, it2++)
 	{
-		diff += compare((*it1)[0], (*it2)[0]) + compare((*it1)[1], (*it2)[1]) + compare((*it1)[2], (*it2)[2]);
+		//diff += compare((*it1)[0], (*it2)[0]) + compare((*it1)[1], (*it2)[1]) + compare((*it1)[2], (*it2)[2]);
+		diff += compare(*it1, *it2);
 		c++;
 	}
 
@@ -191,23 +221,47 @@ static double feature(vector<Vec3b>& v1, vector<Vec3b>& v2)
 
 static int Abs(int x) { return x >= 0 ? x : -x; }
 
-pair<double, int> PuzzelRectange::CompareFeatureVectors(edgeFeature* e1, edgeFeature* e2)
+pair<double, int> CompareFeatureVectors2(EdgeFeatureVector* e1, EdgeFeatureVector* e2)
 {
-	if (e1->isMaleJoint ^ e2->isMaleJoint && e1->hasJoint && e2->hasJoint)
-	{
 		auto p1 = feature(e1->colors1, e2->colors2);
 		auto p2 = feature(e1->colors2, e2->colors1);
 		
 		int diffVectorSize = Abs(e1->colors1.size() + e1->colors2.size() - e2->colors1.size() - e2->colors2.size());
 		int diffTotalSize = Abs(e1->len - e2->len);
-		int diffScore = diffVectorSize * 5 + diffTotalSize * 10;
+		int diffScore = diffVectorSize * 2 + diffTotalSize * 4;
+		double colorScore = (p1 + p2) * 4;
 
-		return pair<double, int>(p1 + p2, diffScore);
+		return pair<double, int>(colorScore, diffScore);
+}
+
+pair<double, int> PuzzelRectange::CompareFeatureVectors(edgeFeature* e1, edgeFeature* e2)
+{
+	if (e1->isMaleJoint ^ e2->isMaleJoint && e1->hasJoint && e2->hasJoint)
+	{
+
+#if USE_ADAPTIVE_FEATURE_MARGINE
+		pair<double, int> bestResult(0.0, INT_MAX);
+		for (int i = 0; i < 2; i++)
+		{
+			for (int j = 0; j < 2; j++)
+			{
+				pair<double, int> result = CompareFeatureVectors2(e1->colors + i, e2->colors + j);
+				if (bestResult.first + bestResult.second > result.first + result.second)
+				{
+					bestResult = result;
+				}
+			}
+		}
+		return bestResult;
+#else
+		return CompareFeatureVectors2(e1->colors + 1, e2->colors + 1);
+#endif
+
 	}
 	return pair<double, int>(DBL_MAX, INT_MAX);
 }
 
-static RNG rng(13375);
+static RNG rng(26358);
 void PuzzelRectange::FindNeighbour(vector<PuzzelRectange*> &puzzels, int edgeNr, string name)
 {
 	double best = DBL_MAX;
@@ -382,7 +436,7 @@ static void SelectCirclesAlignedToEdge(vector<Vec3f>& circles, Point2f c1, Point
 				continue;
 			}
 			//allow only circles near to the line centre
-			if (1.0 * shift / len < 0.25)
+			if (1.0 * shift / len < 0.2)
 			{
 				selectedCircles.push_back(_circle);
 			}

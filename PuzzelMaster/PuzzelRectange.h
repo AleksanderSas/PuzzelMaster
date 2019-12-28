@@ -7,15 +7,20 @@
 using namespace std;
 using namespace cv;
 
+typedef struct edgeFeatureVector
+{
+	int len;
+	vector<Vec3b> colors1;
+	vector<Vec3b> colors2;
+} EdgeFeatureVector;
+
 struct edgeFeature
 {
 	bool isMaleJoint;
 	bool hasJoint = false;
-	int len;
 	Vec3i joint;  //x, y, r
-	vector<Vec3b> colors1;
-	vector<Vec3b> colors2;
 	Point2f start, end;
+	EdgeFeatureVector colors[3];
 };
 
 class PuzzelRectange
@@ -73,7 +78,7 @@ public:
 	#define LINE_TRESHOLD 15
 	#define MAX_LINE_GAP 6
 #endif
-#define AREA_PADDING 10
+#define AREA_PADDING 60
 #define MIN_RECT_SIZE 50
 #define MIN_COVER_SCORE 0.01
 };
