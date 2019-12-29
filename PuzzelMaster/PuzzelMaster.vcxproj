@@ -160,6 +160,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="BackgroundSeparator.cpp" />
+    <ClCompile Include="FeatureVectorCache.cpp" />
     <ClCompile Include="IntrestingArea.cpp" />
     <ClCompile Include="KMeans.cpp" />
     <ClCompile Include="LineProcessor.cpp" />
@@ -174,6 +175,7 @@
   <ItemGroup>
     <ClInclude Include="BackgroundSeparator.h" />
     <ClInclude Include="DebugFlags.h" />
+    <ClInclude Include="FeatureVectorCache.h" />
     <ClInclude Include="IntrestingArea.h" />
     <ClInclude Include="KMeans.h" />
     <ClInclude Include="LineProcessor.h" />

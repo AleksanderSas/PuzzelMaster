@@ -12,7 +12,7 @@ static bool edgesMatch(edgeFeature* e1, edgeFeature* e2)
 
 double leftScores[4];
 double upperScores[4];
-static void ScoreRotations(PuzzelRectange* p, Token* left, Token* upper)
+void PuzzelSolver::ScoreRotations(PuzzelRectange* p, Token* left, Token* upper)
 {
 	edgeFeature* e1_1 = left != nullptr? left->puzzel->edgeFeatures + ((left->pozzelRotation + 2) % 4) : nullptr;
 	edgeFeature* e2_1 = upper!= nullptr? upper->puzzel->edgeFeatures + ((upper->pozzelRotation + 3) % 4) : nullptr;
@@ -27,13 +27,20 @@ static void ScoreRotations(PuzzelRectange* p, Token* left, Token* upper)
 			upperScores[i] = 0.0;
 			if (e1_1 != nullptr)
 			{
+#if USE_CACHE_IN_SOLVER
 				auto s = PuzzelRectange::CompareFeatureVectors(e1_2, e1_1);
-				auto s2 = PuzzelRectange::CompareFeatureVectors(e1_1, e1_2);
+#else
+				auto s = cache->GetFromCashe(p->id, left->puzzel->id, i, (left->pozzelRotation + 2) % 4);
+#endif
 				leftScores[i] = s.first + s.second;
 			}
 			if (e2_1 != nullptr)
 			{
+#if USE_CACHE_IN_SOLVER
 				auto s = PuzzelRectange::CompareFeatureVectors(e2_2, e2_1);
+#else
+				auto s = cache->GetFromCashe(p->id, upper->puzzel->id, ((i + 1) % 4), (upper->pozzelRotation + 3) % 4);
+#endif
 				upperScores[i] = s.first + s.second;
 			}
 		}
@@ -79,8 +86,9 @@ static bool compareTokens(Token* t1, Token* t2)
 void PuzzelSolver::Solve(vector<PuzzelRectange*>& puzzels, int columns, int rows)
 {
 	Initialize(puzzels);
+	cache = new FeatureVectorCache(puzzels);
 
-	//TODO: lepsza kolejunosc -> kaskadowo?
+	//TODO: lepsza kolejnosc -> kaskadowo?
 	for (int y = 0; y < rows; y++)
 	{
 		for (int x = (y == 0? 1 : 0); x < columns; x++)
@@ -93,6 +101,7 @@ void PuzzelSolver::Solve(vector<PuzzelRectange*>& puzzels, int columns, int rows
 			TruncateHipothesis();
 		}
 	}
+	delete cache;
 	cout << endl << "Token remains: " << Token::counter <<  endl;
 }
 
