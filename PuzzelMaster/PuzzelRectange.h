@@ -20,7 +20,7 @@ struct edgeFeature
 	bool hasJoint = false;
 	Vec3i joint;  //x, y, r
 	Point2f start, end;
-	EdgeFeatureVector colors[3];
+	EdgeFeatureVector colors[4];
 };
 
 class PuzzelRectange

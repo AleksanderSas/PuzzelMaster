@@ -67,7 +67,7 @@ void ComputeFeatureVector(Mat &m, Point2f startCorner, Point2f endCorner, Point2
 	int joint2endDist = hypot(joint[0] - end.x, joint[1] - end.y);
 	int dist = start2jointDist + joint2endDist;
 
-	Point2f start2joint = LinearComb(start, end, 1.0 * (dist - start2jointDist + joint[2] )/ dist);
+	Point2f start2joint = LinearComb(start, end,1.0 * (dist - start2jointDist + joint[2] )/ dist);
 	Point2f joint2end = LinearComb(end, start, 1.0 * (dist - joint2endDist + joint[2]) / dist);
 
 	LineProcessor::Process(start, start2joint, [&](int x, int y) {v->colors1.push_back(m.at<Vec3b>(y, x)); return true; });
@@ -76,9 +76,10 @@ void ComputeFeatureVector(Mat &m, Point2f startCorner, Point2f endCorner, Point2
 
 void ComputeFeatureVector(Mat& m, Point2f startCorner, Point2f endCorner, Point2f startBackSide, Point2f endBackSide, edgeFeature* e)
 {
-	ComputeFeatureVector(m, startCorner, endCorner, startBackSide, endBackSide, e->joint, e->colors, 0.96f);
-	ComputeFeatureVector(m, startCorner, endCorner, startBackSide, endBackSide, e->joint, e->colors + 1, 0.93f);
-	ComputeFeatureVector(m, startCorner, endCorner, startBackSide, endBackSide, e->joint, e->colors + 2, 0.90f);
+	ComputeFeatureVector(m, startCorner, endCorner, startBackSide, endBackSide, e->joint, e->colors, 0.98f);
+	ComputeFeatureVector(m, startCorner, endCorner, startBackSide, endBackSide, e->joint, e->colors + 1, 0.96f);
+	ComputeFeatureVector(m, startCorner, endCorner, startBackSide, endBackSide, e->joint, e->colors + 2, 0.93f);
+	ComputeFeatureVector(m, startCorner, endCorner, startBackSide, endBackSide, e->joint, e->colors + 3, 0.90f);
 }
 
 
@@ -241,9 +242,9 @@ pair<double, int> PuzzelRectange::CompareFeatureVectors(edgeFeature* e1, edgeFea
 
 #if USE_ADAPTIVE_FEATURE_MARGINE
 		pair<double, int> bestResult(0.0, INT_MAX);
-		for (int i = 0; i < 2; i++)
+		for (int i = 0; i < 4; i++)
 		{
-			for (int j = 0; j < 2; j++)
+			for (int j = 0; j < 4; j++)
 			{
 				pair<double, int> result = CompareFeatureVectors2(e1->colors + i, e2->colors + j);
 				if (bestResult.first + bestResult.second > result.first + result.second)
