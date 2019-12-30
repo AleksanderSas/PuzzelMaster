@@ -11,6 +11,7 @@
 #include "math.h"
 #include "Presenter.h"
 #include "DebugFlags.h"
+#include <time.h>
 
 using namespace cv;
 using namespace std;
@@ -32,27 +33,54 @@ Mat ComposePuzzels(vector<S*>& puzzels, function<Mat(S*)> selector, function<str
 	return ComposePuzzels<T, S>(puzzels, selector, label, textColor, ceil(sqrt(puzzels.size())));
 }
 
-template<typename T, typename S>
-Mat ComposePuzzels(vector<S*>& puzzels, function<Mat(S*)> selector, function<string(S*)> label, Scalar textColor, int puzzelsPerRow)
+void SetOffsets(int* offsets, int size)
 {
-	int maxCols = 0;
-	int maxRows = 0;
-
-	for (S* puzzel : puzzels)
+	offsets[0] = 0;
+	for (int i = 1; i <= size; i++)
 	{
-		Mat img = selector(puzzel);
-		if (maxCols < img.cols)
+		offsets[i] = offsets[i - 1] + offsets[i] + 5;
+	}
+}
+
+template<typename S>
+void SetRowsAndColsSizes(vector<S*>& puzzels, function<Mat(S*)> selector, int* &columnsOffsets, int* &rowOffsets, int rows, int cols)
+{
+	columnsOffsets = new int[cols + 1];
+	memset(columnsOffsets, 0, sizeof(int) * (cols + 1));
+	rowOffsets = new int[rows + 1];
+	memset(rowOffsets, 0, sizeof(int) * (rows + 1));
+
+	for (int y = 0; y < rows; y++)
+	{
+		for (int x = 0; x < cols; x++)
 		{
-			maxCols = img.cols;
-		}
-		if (maxRows < img.rows)
-		{
-			maxRows = img.rows;
+			int idx = y * rows + x;
+			if (idx > puzzels.size())
+			{
+				return;
+			}
+			Mat img = selector(puzzels[idx]);
+			if (columnsOffsets[x + 1] < img.cols)
+				columnsOffsets[x + 1] = img.cols;
+			if (rowOffsets[y + 1] < img.rows)
+				rowOffsets[y + 1] = img.rows;
 		}
 	}
 
+	SetOffsets(columnsOffsets, cols);
+	SetOffsets(rowOffsets, rows);
+}
+
+template<typename T, typename S>
+Mat ComposePuzzels(vector<S*>& puzzels, function<Mat(S*)> selector, function<string(S*)> label, Scalar textColor, int puzzelsPerRow)
+{
 	int rowNumber = ceil(1.0 * puzzels.size() / puzzelsPerRow);
-	Mat mosaic = Mat::zeros(maxRows * rowNumber, maxCols * puzzelsPerRow, selector(puzzels[0]).type());
+	int* columnsOffsets;
+	int* rowOffsets;
+
+	SetRowsAndColsSizes<S>(puzzels, selector, columnsOffsets, rowOffsets, rowNumber, puzzelsPerRow);
+
+	Mat mosaic = Mat::zeros(rowOffsets[rowNumber], columnsOffsets[puzzelsPerRow], selector(puzzels[0]).type());
 
 	int i = 0;
 	int currentRow = 0;
@@ -61,17 +89,22 @@ Mat ComposePuzzels(vector<S*>& puzzels, function<Mat(S*)> selector, function<str
 		for (int k = 0; k < puzzelsPerRow && i < puzzels.size(); k++, i++)
 		{
 			Mat source = selector(puzzels[i]);
+			int columnOffset = columnsOffsets[k];
+			int rowOffset = rowOffsets[currentRow];
 			for (int y = 0; y < source.rows; y++)
 			{
 				for (int x = 0; x < source.cols; x++)
 				{
-					mosaic.at<T>(y + maxRows * currentRow, x + maxCols * k) = source.at<T>(y, x);
+					mosaic.at<T>(y + rowOffset, x + columnOffset) = source.at<T>(y, x);
 				}
 			}
-			putText(mosaic, label(puzzels[i]), Point(maxCols * k + 10, maxRows * currentRow + 10), HersheyFonts::FONT_HERSHEY_PLAIN, 1.0, textColor);
+			putText(mosaic, label(puzzels[i]), Point(columnOffset + 10, rowOffset + 10), HersheyFonts::FONT_HERSHEY_PLAIN, 1.0, textColor);
 		}
 		currentRow++;
 	}
+
+	delete[] rowOffsets;
+	delete[] columnsOffsets;
 
 	return mosaic;
 }
@@ -125,7 +158,10 @@ void run()
 #if ENABLE_SOLVER
 	auto solver = PuzzelSolver();
 	int columnsToSolve = 3;
+	long long int time = clock();
 	solver.Solve(puzzels, columnsToSolve, 3);
+	time = clock() - time;
+	cout << "TIME: " << time << endl;
 	solver.RemoveDuplicateds();
 
 	for (int i = 0; i < 5; i++)
@@ -151,9 +187,12 @@ void run()
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 2, "w2");
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 3, "w3");
 #endif
-	Presenter::ShowScaledImage("mosaic - puzzels", ComposePuzzels(puzzels));
-	Presenter::ShowScaledImage("mosaic - background edges", ComposeBackgroundEdges(puzzels));
-	Presenter::ShowScaledImage("mosaic - edges", ComposeEdges(puzzels));
+	if (puzzels.size() > 0)
+	{
+		Presenter::ShowScaledImage("mosaic - puzzels", ComposePuzzels(puzzels));
+		Presenter::ShowScaledImage("mosaic - background edges", ComposeBackgroundEdges(puzzels));
+		Presenter::ShowScaledImage("mosaic - edges", ComposeEdges(puzzels));
+	}
 }
 
 int main(int argc, char** argv)
