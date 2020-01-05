@@ -9,6 +9,7 @@ class PuzzelSolver
 public:
 	void Solve(vector<PuzzelRectange*> &puzzels, int columns, int rows);
 	Token* GetBest(int nth);
+	int Size() const;
 	void PrintHistory(int nth);
 	void RemoveDuplicateds();
 

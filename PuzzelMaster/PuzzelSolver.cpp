@@ -158,7 +158,7 @@ void PuzzelSolver::TruncateHipothesis()
 
 void PuzzelSolver::Initialize(std::vector<PuzzelRectange*>& puzzels)
 {
-	//PuzzelRectange* puzzel = puzzels[3];
+	//PuzzelRectange* puzzel = puzzels[10];
 	for (PuzzelRectange* puzzel : puzzels)
 	{
 		for (int i = 0; i < 4; i++)
@@ -184,6 +184,11 @@ void PuzzelSolver::Initialize(std::vector<PuzzelRectange*>& puzzels)
 Token* PuzzelSolver::GetBest(int nth)
 {
 	return PreviousHipothesis[nth];
+}
+
+int PuzzelSolver::Size() const
+{
+	return PreviousHipothesis.size();
 }
 
 void PuzzelSolver::PrintHistory(int nth)

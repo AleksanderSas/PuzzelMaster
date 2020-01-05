@@ -33,6 +33,7 @@ public:
 	Point2f left, right, lower, upper;
 	Mat puzzelArea;
 	Mat backgroundEdges;
+	Mat backgroundMap;
 	Mat edges;
 	double score;
 	double backgroundEdgeHitScore;
@@ -53,8 +54,9 @@ public:
 
 	void ComputeEdgeFeatures();
 	void FindNeighbour(vector<PuzzelRectange*>& puzzels, int edgeNr, string name);
-	void FindBestCircleJoin(vector<Vec3f>& circles, Point2f c1, Point2f c2, edgeFeature* e);
-	vector<Vec3f> FindJointCandidates(Mat& puzzelArea);
+	void FindBestCircleJoin(vector<Vec3f>& circles, vector<Vec3f>& circles2, Point2f c1, Point2f c2, edgeFeature* e);
+	void FindCircleJointCandidates(std::vector<cv::Vec3f>& circles, cv::Point2f& c1, cv::Point2f& c2, float& bestScore, cv::Vec3i& candidate, edgeFeature* e, int offset);
+	vector<Vec3f> FindJointCandidates(Mat& puzzelArea, int circleTreshold);
 
 	Vec3f lineParameters_left_upper;
 	Vec3f lineParameters_upper_rigth;

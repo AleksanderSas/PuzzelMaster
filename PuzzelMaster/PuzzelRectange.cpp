@@ -2,31 +2,12 @@
 #include "math.h"
 #include "KMeans.h"
 #include "Utils.h"
+#include "MathUtils.h"
 #include "LineProcessor.h"
 #include "DebugFlags.h"
 
 #define M_PI 3.14159265358979323846
 
-// [A, B, C]
-Vec3f ParametrizeLine(Point2f& c1, Point2f& c2)
-{
-	Vec3f p;
-	int dx = c1.x - c2.x;
-	int dy = c1.y - c2.y;
-
-	if (abs(dx) < abs(dy) && c1.y != c2.y)
-	{
-		p[0] = 1.0;
-		p[1] = -1.0 * dx / dy;
-	}
-	else
-	{
-		p[1] = 1.0;
-		p[0] = -1.0 * dy / dx;
-	}
-	p[2] = -p[1] * c1.y - p[0] * c1.x;
-	return p;
-}
 
 PuzzelRectange::PuzzelRectange(
 	Point2f& left, 
@@ -44,18 +25,6 @@ PuzzelRectange::PuzzelRectange(
 	lineParameters_lower_left = ParametrizeLine(lower, left);
 }
 
-Point2f TrasformPoint(Point2f &p, Mat &transformation)
-{
-	Mat_<float> pm(3, 1);
-	pm << p.x, p.y, 1.0;
-	Mat_<float> pr = transformation * pm;
-	return Point2f(pr(0), pr(1));
-}
-
-Point2f LinearComb(Point2f p1, Point2f p2, float p1Weigth)
-{
-	return Point2f(p1.x * p1Weigth + p2.x * (1 - p1Weigth), p1.y * p1Weigth + p2.y * (1 - p1Weigth));
-}
 
 void ComputeFeatureVector(Mat &m, Point2f startCorner, Point2f endCorner, Point2f startBackSide, Point2f endBackSide, Vec3i joint, EdgeFeatureVector *v, float factor)
 {
@@ -76,21 +45,13 @@ void ComputeFeatureVector(Mat &m, Point2f startCorner, Point2f endCorner, Point2
 
 void ComputeFeatureVector(Mat& m, Point2f startCorner, Point2f endCorner, Point2f startBackSide, Point2f endBackSide, edgeFeature* e)
 {
-	ComputeFeatureVector(m, startCorner, endCorner, startBackSide, endBackSide, e->joint, e->colors, 0.98f);
+	ComputeFeatureVector(m, startCorner, endCorner, startBackSide, endBackSide, e->joint, e->colors, 0.99f);
 	ComputeFeatureVector(m, startCorner, endCorner, startBackSide, endBackSide, e->joint, e->colors + 1, 0.96f);
 	ComputeFeatureVector(m, startCorner, endCorner, startBackSide, endBackSide, e->joint, e->colors + 2, 0.93f);
 	ComputeFeatureVector(m, startCorner, endCorner, startBackSide, endBackSide, e->joint, e->colors + 3, 0.90f);
 }
 
-
-int squareDist(Vec3f& line, int x, int y)
-{
-	int tmp = line[0] * x + line[1] * y + line[2];
-	int tmp2 = line[0] * line[0] + line[1] * line[1];
-	return tmp * tmp / tmp2;
-}
-
-void RemoveLines(Mat& edges, Mat& sourceImg)
+void RemoveLines(Mat& edges)
 {
 	vector<Vec4i> lines;
 	//HoughLines(edges, lines, 1, CV_PI / 180, 20, 0, 0);
@@ -103,22 +64,18 @@ void RemoveLines(Mat& edges, Mat& sourceImg)
 	}
 }
 
-vector<Vec3f> PuzzelRectange::FindJointCandidates(Mat& puzzelArea)
+vector<Vec3f> PuzzelRectange::FindJointCandidates(Mat& image_gray, int circleTreshold)
 {
 	int d = hypot(left.x - upper.x, left.y - upper.y);
 	int maxRadius = d / 5;
 	int minRadius = d / 9;
-	Mat image_gray, canny_output ;
-	cvtColor(puzzelArea, image_gray, COLOR_BGR2GRAY);
+	Mat canny_output ;
 	int cannEdgeThresh = 70;
 
-	Mat element = getStructuringElement(MORPH_RECT,
-		Size(3, 3),
-		Point(1, 1));
 	Scalar color(255);
 	Canny(image_gray, canny_output, cannEdgeThresh, cannEdgeThresh * 2);
 
-	RemoveLines(canny_output, puzzelArea);
+	RemoveLines(canny_output);
 
 	int thickness = 2;
 	int minDist = d / 15;
@@ -136,7 +93,7 @@ vector<Vec3f> PuzzelRectange::FindJointCandidates(Mat& puzzelArea)
 	//);
 	HoughCircles(canny_output, circles, HOUGH_GRADIENT, 1.3,
 		minDist,  // change this value to detect circles with different distances to each other
-		15, 9, minRadius, maxRadius // change the last two parameters
+		15, circleTreshold, minRadius, maxRadius // change the last two parameters
 	// (min_radius & max_radius) to detect larger circles
 	);
 
@@ -145,26 +102,29 @@ vector<Vec3f> PuzzelRectange::FindJointCandidates(Mat& puzzelArea)
 
 void PuzzelRectange::ComputeEdgeFeatures()
 {
-	vector<Vec3f> circles = FindJointCandidates(puzzelArea);
+	Mat image_gray;
+	cvtColor(puzzelArea, image_gray, COLOR_BGR2GRAY);
+	vector<Vec3f> circles = FindJointCandidates(image_gray, 9);
+	vector<Vec3f> circles2 = FindJointCandidates(backgroundMap, 10);
 	edgeFeature* e = edgeFeatures;
 	e->start = left;
 	e->end = lower;
-	FindBestCircleJoin(circles, left, lower, e);
+	FindBestCircleJoin(circles, circles2, left, lower, e);
 	ComputeFeatureVector(puzzelArea, left, lower, upper, right, e++);
 	
 	e->start = lower;
 	e->end = right;
-	FindBestCircleJoin(circles, lower, right, e);
+	FindBestCircleJoin(circles, circles2, lower, right, e);
 	ComputeFeatureVector(puzzelArea, lower, right, left, upper, e++);
 
 	e->start = right;
 	e->end = upper;
-	FindBestCircleJoin(circles, right, upper, e);
+	FindBestCircleJoin(circles, circles2, right, upper, e);
 	ComputeFeatureVector(puzzelArea, right, upper, lower, left, e++);
 
 	e->start = upper;
 	e->end = left;
-	FindBestCircleJoin(circles, upper, left, e);
+	FindBestCircleJoin(circles, circles2, upper, left, e);
 	ComputeFeatureVector(puzzelArea, upper, left, right, lower, e++);
 	
 	line(puzzelArea, lower, right, Scalar(200, 200, 40));
@@ -199,13 +159,13 @@ double compare(Vec3b a, Vec3b b)
 	return 1.0 * squareLen(diff) / (len(a) + len(b));
 }
 
-static double feature(vector<Vec3b>& v1, vector<Vec3b>& v2)
+static double feature(vector<Vec3b>& v1, vector<Vec3b>& v2, int s1, int s2)
 {
 	int c = 0;
 	double diff = 0.0;
 
-	vector<Vec3b>::iterator it1 = v1.begin();
-	vector<Vec3b>::iterator it2 = v2.begin();
+	vector<Vec3b>::iterator it1 = v1.begin() + s1;
+	vector<Vec3b>::iterator it2 = v2.begin() + s2;
 
 	for (; it1 != v1.end() && it2 != v2.end(); it1++, it2++)
 	{
@@ -220,12 +180,35 @@ static double feature(vector<Vec3b>& v1, vector<Vec3b>& v2)
 	//return pair<double, int>(diff / c, penalty * 10);
 }
 
+static double featureWithShift(vector<Vec3b>& v1, vector<Vec3b>& v2)
+{
+	double best = DBL_MAX;
+	for (int i = 0; i < 3; i++)
+	{
+		double current = feature(v1, v2, 0, i);
+		if (current < best)
+			best = current;
+	}
+	for (int i = 1; i < 3; i++)
+	{
+		double current = feature(v1, v2, i, 0);
+		if (current < best)
+			best = current;
+	}
+	return best;
+}
+
 static int Abs(int x) { return x >= 0 ? x : -x; }
 
 pair<double, int> CompareFeatureVectors2(EdgeFeatureVector* e1, EdgeFeatureVector* e2)
 {
-		auto p1 = feature(e1->colors1, e2->colors2);
-		auto p2 = feature(e1->colors2, e2->colors1);
+#if USE_ADAPTIVE_FEATURE_SHIFT
+		auto p1 = featureWithShift(e1->colors1, e2->colors2);
+		auto p2 = featureWithShift(e1->colors2, e2->colors1);
+#else
+		auto p1 = feature(e1->colors1, e2->colors2, 0, 0);
+		auto p2 = feature(e1->colors2, e2->colors1, 0, 0);
+#endif
 		
 		int diffVectorSize = Abs(e1->colors1.size() + e1->colors2.size() - e2->colors1.size() - e2->colors2.size());
 		int diffTotalSize = Abs(e1->len - e2->len);
@@ -328,13 +311,6 @@ void PuzzelRectange::FindNeighbour(vector<PuzzelRectange*> &puzzels, int edgeNr,
 		Utils::WriteColoredText("no second score\n", colorIdx);
 	}
 	waitKey(1);
-}
-
-static int squareDist(Point& p1, Point& p2)
-{
-	int x = p1.x - p2.x;
-	int y = p1.y - p2.y;
-	return x * x + y * y;
 }
 
 static vector<Point>* FindClosestContour(vector<vector<Point>*> contours, Point p)
@@ -445,39 +421,12 @@ static void SelectCirclesAlignedToEdge(vector<Vec3f>& circles, Point2f c1, Point
 	}
 }
 
-void PuzzelRectange::FindBestCircleJoin(vector<Vec3f>& circles, Point2f c1, Point2f c2, edgeFeature* e)
+void PuzzelRectange::FindBestCircleJoin(vector<Vec3f>& circles, vector<Vec3f>& circles2, Point2f c1, Point2f c2, edgeFeature* e)
 {
 	Vec3i candidate;
 	float bestScore = -9999;
-	vector<Vec3f> finalCircles;
-
-	SelectCirclesAlignedToEdge(circles, c1, c2, finalCircles);
-
-	for (size_t i = 0; i < finalCircles.size(); i++)
-	{
-		Vec3i _circle = finalCircles[i];
-		float orderScore = 1.0 * (1.0 - 1.0 * i / finalCircles.size());
-		float coverScore = scoreCircle(_circle);
-		float condidateScore = coverScore + orderScore;
-		if (bestScore < condidateScore && coverScore > MIN_COVER_SCORE)
-		{
-			candidate = _circle;
-			bestScore = condidateScore;
-			e->hasJoint = true;
-		}
-				
-#if 0
-		unsigned int colorIdx = (((long long int)e) >> 3) % 16;
-		unsigned char* c = Utils::GetColorFromTable(colorIdx);
-		Scalar color(c[2], c[1], c[0]);
-
-		int radius = _circle[2];
-		char buffer[255];
-		sprintf_s(buffer, "joint score:  %f  %f  %f  %s\n", condidateScore, condidateScore - orderScore, orderScore, coverScore > MIN_COVER_SCORE? "" : "XXX");
-		Utils::WriteColoredText(string(buffer), colorIdx);
-		circle(puzzelArea, Point(_circle[0], _circle[1]), radius, color / (coverScore > MIN_COVER_SCORE ?  1 : 2), 1, LINE_AA);
-#endif
-	}
+	FindCircleJointCandidates(circles, c1, c2, bestScore, candidate, e, 0);
+	FindCircleJointCandidates(circles2, c1, c2, bestScore, candidate, e, circles.size() / 3);
 	cout << endl;
 
 	if (e->hasJoint)
@@ -488,6 +437,39 @@ void PuzzelRectange::FindBestCircleJoin(vector<Vec3f>& circles, Point2f c1, Poin
 
 	Point center = Point(candidate[0], candidate[1]);
 	circle(puzzelArea, center, 1, e->isMaleJoint? Scalar(0, 100, 100) : Scalar(100, 40, 200), 3, LINE_AA);
+}
+
+void PuzzelRectange::FindCircleJointCandidates(std::vector<cv::Vec3f>& circles, cv::Point2f& c1, cv::Point2f& c2, float& bestScore, cv::Vec3i& candidate, edgeFeature* e, int offset)
+{
+	vector<Vec3f> finalCircles;
+
+	SelectCirclesAlignedToEdge(circles, c1, c2, finalCircles);
+
+	for (size_t i = 0; i < finalCircles.size(); i++)
+	{
+		Vec3i _circle = finalCircles[i];
+		float orderScore = 1.0 * (1.0 - (1.0 * i + offset) / (finalCircles.size() + offset));
+		float coverScore = scoreCircle(_circle);
+		float condidateScore = coverScore + orderScore;
+		if (bestScore < condidateScore && coverScore > MIN_COVER_SCORE)
+		{
+			candidate = _circle;
+			bestScore = condidateScore;
+			e->hasJoint = true;
+		}
+
+#if 0
+		unsigned int colorIdx = (((long long int)e) >> 3) % 16;
+		unsigned char* c = Utils::GetColorFromTable(colorIdx);
+		Scalar color(c[2], c[1], c[0]);
+
+		int radius = _circle[2];
+		char buffer[255];
+		sprintf_s(buffer, "joint score:  %f  %f  %f  %s\n", condidateScore, condidateScore - orderScore, orderScore, coverScore > MIN_COVER_SCORE ? "" : "XXX");
+		Utils::WriteColoredText(string(buffer), colorIdx);
+		circle(puzzelArea, Point(_circle[0], _circle[1]), radius, color / (coverScore > MIN_COVER_SCORE ? 1 : 2), 1, LINE_AA);
+#endif
+	}
 }
 
 bool PuzzelRectange::isPointInside(int x, int y)

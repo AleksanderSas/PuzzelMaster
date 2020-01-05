@@ -1,6 +1,8 @@
 #include "IntrestingArea.h"
 #include "LineProcessor.h"
 #include "DebugFlags.h"
+#include "Utils.h"
+#include "MathUtils.h"
 
 IntrestingArea:: IntrestingArea(Mat areaImage, Mat edgeMap, Rect originRectange,int id, RotatedRect box):
 	AreaImage(areaImage), 
@@ -9,6 +11,50 @@ IntrestingArea:: IntrestingArea(Mat areaImage, Mat edgeMap, Rect originRectange,
 	id(id),
 	box(box)
 {}
+
+static Mat getBackgroundMap(Mat& input, BackgroundSeparator* separator)
+{
+	Mat output = Mat::zeros(input.rows, input.cols, CV_8UC1);
+	int count = 0;
+	float score = 0.0;
+	Vec3b* p_source;
+	unsigned char* p_dest;
+	for (int i = 0; i < input.rows; ++i)
+	{
+		p_source = input.ptr<Vec3b>(i);
+		p_dest = output.ptr<unsigned char>(i);
+		for (int j = 0; j < input.cols; ++j, ++p_source, ++p_dest)
+		{
+			float nondebackgroundProbability = (1 - separator->scorePoint(p_source));
+			if (!isnan(nondebackgroundProbability))
+			{
+				*p_dest = nondebackgroundProbability * 255;
+			}
+		}
+	}
+	return output;
+}
+
+static vector<Point2f> Merge(vector<Point2f> set1, vector<Point2f> set2, int minDisatnce)
+{
+	vector<Point2f> result(set1);
+
+	for (Point c2 : set2)
+	{
+		bool append = true;
+		for (Point c1 : set1)
+		{
+			if (squareDist(c1, c2) < minDisatnce * minDisatnce)
+			{
+				append = false;
+				continue;
+			}
+		}
+		if(append)
+			result.push_back(c2);
+	}
+	return result;
+}
 
 PuzzelRectange* IntrestingArea::findPuzzel(BackgroundSeparator* separator, unsigned int& idSequence)
 {
@@ -25,14 +71,41 @@ PuzzelRectange* IntrestingArea::findPuzzel(BackgroundSeparator* separator, unsig
 		maxCorners,
 		qualityLevel,
 		minDistance);
-	cout << "** nr: " << id << "  Number of corners detected: " << corners.size() << endl;
+
+	Mat b = getBackgroundMap(AreaImage, separator);
+
 
 #if DRAW_CORNERS
-	for (auto it = corners.begin(); it != corners.end(); it++)
+	for (auto c : corners)
 	{
-		drawMarker(AreaImage, *it, Scalar(123, 231, 90));
+		drawMarker(AreaImage, c, Scalar(123, 231, 90));
 	}
 #endif
+
+#if USE_INTRESTING_POINTS_FROM_BACKGROUND
+	int maxCorners2 = 25;
+	vector<Point2f> corners2;
+	double qualityLevel2 = 0.004;
+
+	goodFeaturesToTrack(b,
+		corners2,
+		maxCorners2,
+		qualityLevel2,
+		minDistance);
+#if DRAW_CORNERS
+	for (auto c : corners2)
+	{
+		circle(AreaImage, c, 2, Scalar(90, 30, 200), 3);
+	}
+#endif
+	corners = Merge(corners, corners2, minDistance);
+#endif
+
+#if DRAW_CORNERS
+	imshow(string("conrners_") + to_string(id), AreaImage);
+	return nullptr;
+#endif
+	cout << "** nr: " << id << "  Number of corners detected: " << corners.size() << endl;
 
 	auto result = FindBestRectange(corners, separator, idSequence);
 	if (result != nullptr)
@@ -58,12 +131,12 @@ static Mat getEdgeMapFromBackground(Mat& map)
 
 	vector<Vec4i> lines;
 	Mat edges = Mat::zeros(canny_output.rows, canny_output.cols, CV_8UC1);
-	HoughLinesP(canny_output, lines, 1, 0.01, 15, 15, 2);
+	HoughLinesP(canny_output, lines, 1, 0.01, 15, 17, 4);
 	for (size_t i = 0; i < lines.size(); i++)
 	{
 		Vec4i l = lines[i];
-		line(map, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(125), 3, CV_AA);
-		line(edges, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(255), 3, CV_AA);
+		line(map, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(125), 5, CV_AA);
+		line(edges, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(255), 5, CV_AA);
 	}
 	return edges;
 }
@@ -169,29 +242,6 @@ static double ComputeHitScore(Mat& edges, PuzzelRectange* candidate)
 	return score;
 }
 
-static Mat getBackgroundMap(Mat& input, BackgroundSeparator* separator)
-{
-	Mat output = Mat::zeros(input.rows, input.cols, CV_8UC1);
-	int count = 0;
-	float score = 0.0;
-	Vec3b* p_source;
-	unsigned char* p_dest;
-	for (int i = 0; i < input.rows; ++i)
-	{
-		p_source = input.ptr<Vec3b>(i);
-		p_dest = output.ptr<unsigned char>(i);
-		for (int j = 0; j < input.cols; ++j, ++p_source, ++p_dest)
-		{
-			float nondebackgroundProbability = (1 - separator->scorePoint(p_source));
-			if (!isnan(nondebackgroundProbability))
-			{
-				*p_dest = nondebackgroundProbability * 255;
-			}
-		}
-	}
-	return output;
-}
-
 PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, BackgroundSeparator *separator, unsigned int& idSequence)
 {
 	auto hSorted = vector<Point2f>(corners);
@@ -238,6 +288,7 @@ PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Backg
 					PuzzelRectange* candidate = new PuzzelRectange(*left, *right, *lower, *upper, idSequence++, separator, box);
 					candidate->puzzelArea = AreaImage;
 					candidate->backgroundEdges = edg;
+					candidate->backgroundMap = b;
 
 					double totalScore = IsMoreOrLessRectange(candidate);
 					if (totalScore > 0.0)
@@ -251,8 +302,11 @@ PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Backg
 						{
 							continue;
 						}
-						totalScore *= candidate->backgroundEdgeHitScore;
-						//totalScore *= candidate->imageEdgeHitScore;
+						totalScore *= pow(candidate->backgroundEdgeHitScore, 1.25);
+						//totalScore *= candidate->backgroundEdgeHitScore;
+#if USE_IMAG_EDGES_IN_PUZZEL_DETECTION
+						totalScore *= candidate->imageEdgeHitScore;
+#endif
 						candidate->score = totalScore;
 						cout << "C  ";
 						candidate->PrintScores(); 

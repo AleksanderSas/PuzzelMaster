@@ -54,7 +54,7 @@ void SetRowsAndColsSizes(vector<S*>& puzzels, function<Mat(S*)> selector, int* &
 	{
 		for (int x = 0; x < cols; x++)
 		{
-			int idx = y * rows + x;
+			int idx = y * cols + x;
 			if (idx > puzzels.size())
 			{
 				return;
@@ -98,7 +98,7 @@ Mat ComposePuzzels(vector<S*>& puzzels, function<Mat(S*)> selector, function<str
 					mosaic.at<T>(y + rowOffset, x + columnOffset) = source.at<T>(y, x);
 				}
 			}
-			putText(mosaic, label(puzzels[i]), Point(columnOffset + 10, rowOffset + 10), HersheyFonts::FONT_HERSHEY_PLAIN, 1.0, textColor);
+			putText(mosaic, label(puzzels[i]), Point(columnOffset + 10, rowOffset + 20), HersheyFonts::FONT_HERSHEY_PLAIN, 1.5, textColor);
 		}
 		currentRow++;
 	}
@@ -111,7 +111,7 @@ Mat ComposePuzzels(vector<S*>& puzzels, function<Mat(S*)> selector, function<str
 
 Mat ComposePuzzels(vector<PuzzelRectange*>& puzzels)
 {
-	return ComposePuzzels<Vec3b, PuzzelRectange>(puzzels, [](PuzzelRectange* p) {return p->puzzelArea; }, [](PuzzelRectange* p) {return to_string(p->id); }, Scalar(0, 0, 0));
+	return ComposePuzzels<Vec3b, PuzzelRectange>(puzzels, [](PuzzelRectange* p) {return p->puzzelArea; }, [](PuzzelRectange* p) {return to_string(p->id); }, Scalar(0, 0, 255));
 }
 
 Mat ComposeBackgroundEdges(vector<PuzzelRectange*>& puzzels)
@@ -157,14 +157,15 @@ void run()
 
 #if ENABLE_SOLVER
 	auto solver = PuzzelSolver();
-	int columnsToSolve = 3;
+	int columnsToSolve = 4;
 	long long int time = clock();
 	solver.Solve(puzzels, columnsToSolve, 3);
 	time = clock() - time;
 	cout << "TIME: " << time << endl;
 	solver.RemoveDuplicateds();
 
-	for (int i = 0; i < 5; i++)
+	cout << "SOLUTIONS: " << solver.Size() << endl;
+	for (int i = 0; i < min(5, solver.Size()); i++)
 	{
 		string label = string("mosaic - solved ") + to_string(i);
 		Presenter::ShowScaledImage(label.c_str(), ComposeSelectedEdges(solver.GetBest(i), columnsToSolve));
@@ -181,7 +182,7 @@ void run()
 
 	Presenter::ShowScaledImage("corners", src);
 #if MATCH_PUZZEL
-	int puzzelNr = 0;
+	int puzzelNr = 11;
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 0, "w0");
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 1, "w1");
 	puzzels[puzzelNr]->FindNeighbour(puzzels, 2, "w2");
