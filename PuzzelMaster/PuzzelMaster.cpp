@@ -55,8 +55,10 @@ void SetRowsAndColsSizes(vector<S*>& puzzels, function<Mat(S*)> selector, int* &
 		for (int x = 0; x < cols; x++)
 		{
 			int idx = y * cols + x;
-			if (idx > puzzels.size())
+			if (idx >= puzzels.size())
 			{
+				SetOffsets(columnsOffsets, cols);
+				SetOffsets(rowOffsets, rows);
 				return;
 			}
 			Mat img = selector(puzzels[idx]);
@@ -77,11 +79,11 @@ Mat ComposePuzzels(vector<S*>& puzzels, function<Mat(S*)> selector, function<str
 	int rowNumber = ceil(1.0 * puzzels.size() / puzzelsPerRow);
 	int* columnsOffsets;
 	int* rowOffsets;
-
+	
 	SetRowsAndColsSizes<S>(puzzels, selector, columnsOffsets, rowOffsets, rowNumber, puzzelsPerRow);
-
+	
 	Mat mosaic = Mat::zeros(rowOffsets[rowNumber], columnsOffsets[puzzelsPerRow], selector(puzzels[0]).type());
-
+	
 	int i = 0;
 	int currentRow = 0;
 	while (i < puzzels.size())
@@ -102,7 +104,7 @@ Mat ComposePuzzels(vector<S*>& puzzels, function<Mat(S*)> selector, function<str
 		}
 		currentRow++;
 	}
-
+	
 	delete[] rowOffsets;
 	delete[] columnsOffsets;
 
