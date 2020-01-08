@@ -56,7 +56,7 @@ static vector<Point2f> Merge(vector<Point2f> set1, vector<Point2f> set2, int min
 	return result;
 }
 
-PuzzelRectange* IntrestingArea::findPuzzel(BackgroundSeparator* separator, unsigned int& idSequence)
+PuzzelRectange* IntrestingArea::findPuzzel(BackgroundSeparator* separator, unsigned int& idSequence, int minPuzzelSize)
 {
 	Mat greyMat, score;
 	cv::cvtColor(AreaImage, greyMat, CV_BGR2GRAY);
@@ -107,7 +107,7 @@ PuzzelRectange* IntrestingArea::findPuzzel(BackgroundSeparator* separator, unsig
 #endif
 	cout << "** nr: " << id << "  Number of corners detected: " << corners.size() << endl;
 
-	auto result = FindBestRectange(corners, separator, idSequence);
+	auto result = FindBestRectange(corners, separator, idSequence, minPuzzelSize);
 	if (result != nullptr)
 	{
 		result->puzzelArea = AreaImage;
@@ -242,7 +242,7 @@ static double ComputeHitScore(Mat& edges, PuzzelRectange* candidate)
 	return score;
 }
 
-PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, BackgroundSeparator *separator, unsigned int& idSequence)
+PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, BackgroundSeparator *separator, unsigned int& idSequence, int minPuzzelSize)
 {
 	auto hSorted = vector<Point2f>(corners);
 	sort(hSorted.begin(), hSorted.end(), hComparer);
@@ -250,6 +250,7 @@ PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Backg
 	PuzzelRectange* bestRects = nullptr;
 	Mat b = getBackgroundMap(AreaImage, separator);
 	Mat edg = getEdgeMapFromBackground(b);
+	int minRectDiagonal = minPuzzelSize * minPuzzelSize;
 
 	for (vector<Point2f>::iterator left = hSorted.begin(); left != hSorted.end(); left++)
 	{
@@ -257,7 +258,7 @@ PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Backg
 		{
 			int dx = left->x - right->x;
 			int dy = left->y - right->y;
-			if (dx * dx + dy + dy < MIN_RECT_DIAGONAL)
+			if (dx * dx + dy + dy < minRectDiagonal)
 			{
 				continue;
 			}
@@ -308,9 +309,10 @@ PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Backg
 						totalScore *= candidate->imageEdgeHitScore;
 #endif
 						candidate->score = totalScore;
+#if VERBOSE
 						cout << "C  ";
 						candidate->PrintScores(); 
-
+#endif
 						if (bestRects == nullptr || candidate->score > bestRects->score)
 						{
 							swap(bestRects, candidate);

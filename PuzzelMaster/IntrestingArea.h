@@ -14,12 +14,12 @@ class IntrestingArea
 {
 public:
 	IntrestingArea(Mat areaImage, Mat edgeMap, Rect originRectange, int id, RotatedRect box);
-	PuzzelRectange* findPuzzel(BackgroundSeparator* separator, unsigned int& idSequence);
+	PuzzelRectange* findPuzzel(BackgroundSeparator* separator, unsigned int& idSequence, int minPuzzelSize);
 
 	Rect OriginRectange;
 
 private:
-	PuzzelRectange* FindBestRectange(vector<Point2f>& corners, BackgroundSeparator* separator, unsigned int& idSequence);
+	PuzzelRectange* FindBestRectange(vector<Point2f>& corners, BackgroundSeparator* separator, unsigned int& idSequence, int minPuzzelSize);
 
 	int id;
 	Mat AreaImage;
@@ -28,4 +28,3 @@ private:
 };
 
 #define MIN_CROSS_PROD 0.994
-#define MIN_RECT_DIAGONAL 50*50

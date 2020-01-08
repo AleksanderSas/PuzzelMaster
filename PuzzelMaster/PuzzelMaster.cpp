@@ -17,15 +17,16 @@ using namespace cv;
 using namespace std;
 
 Mat src;
+int expectedPuzzelSize;
 PuzzelDetector* puzzelDetector;
 
-// D:\puzzle\2\test_2_2.jpg
-// D:\puzzle\2\test_2_2_mini.jpg
-// D:\puzzle\test_3.jpg
-// D:\puzzle\test.jpg
-// D:\puzzle\3\test_3_1.jpg
-// D:\puzzle\3\test_3_3.jpg
-// D:\puzzle\4\test_1.jpg
+// D:\puzzle\2\test_2_2.jpg 75
+// D:\puzzle\2\test_2_2_mini.jpg 75
+// D:\puzzle\test_3.jpg 75
+// D:\puzzle\test.jpg 120
+// D:\puzzle\3\test_3_1.jpg 75
+// D:\puzzle\3\test_3_3.jpg 75
+// D:\puzzle\4\test_2.jpg 120
 
 template<typename T, typename S>
 Mat ComposePuzzels(vector<S*>& puzzels, function<Mat(S*)> selector, function<string(S*)> label, Scalar textColor)
@@ -145,7 +146,7 @@ Mat ComposeSelectedEdges(Token* lastToken, int puzzelsPerRow)
 
 void run()
 {
-	puzzelDetector = new PuzzelDetector(src);
+	puzzelDetector = new PuzzelDetector(src, expectedPuzzelSize);
 	puzzelDetector->cannEdgeThresh = 50;
 	auto puzzels = puzzelDetector->DetectPuzzels();
 
@@ -198,9 +199,33 @@ void run()
 	}
 }
 
+void DrawSourceImageWithExpectedPuzzelSize(const char* source_window)
+{
+	Mat image = src.clone();
+
+	int x1 = 50;
+	int x2 = x1 + expectedPuzzelSize;
+	int y1 = 50;
+	int y2 = y1 + expectedPuzzelSize;
+	Scalar color(90, 90, 200);
+
+	line(image, Point(x1, y1), Point(x1, y2), color, 2);
+	line(image, Point(x2, y1), Point(x2, y2), color, 2);
+	line(image, Point(x1, y1), Point(x2, y1), color, 2);
+	line(image, Point(x1, y2), Point(x2, y2), color, 2);
+	Presenter::ShowScaledImage(source_window, image);
+}
+
 int main(int argc, char** argv)
 {
+	if (argc != 3)
+	{
+		cout << "Expect 2 parameters: <image_path> <expected_puzzelSize>" << endl;
+		return 1;
+	}
+
 	src = imread(argv[1]);
+	expectedPuzzelSize = atoi(argv[2]);
 
 	if (src.empty())
 	{
@@ -211,7 +236,7 @@ int main(int argc, char** argv)
 
 	const char* source_window = "Source";
 	namedWindow(source_window);
-	Presenter::ShowScaledImage(source_window, src);
+	DrawSourceImageWithExpectedPuzzelSize(source_window);
 	run();
 	cout << "FINISHED";
 	waitKey();

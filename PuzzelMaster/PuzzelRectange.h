@@ -81,7 +81,6 @@ public:
 	#define MAX_LINE_GAP 6
 #endif
 #define AREA_PADDING 60
-#define MIN_RECT_SIZE 50
 #define MIN_COVER_SCORE 0.01
 };
 

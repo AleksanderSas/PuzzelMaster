@@ -5,10 +5,11 @@
 #include "BackgroundSeparator.h"
 #include "LineProcessor.h"
 
-KMeans::KMeans(int heigth, int width)
+KMeans::KMeans(int heigth, int width, int minPuzzelSize)
 {
 	this->width = width;
 	this->heigth = heigth;
+	this->minPuzzelSize = minPuzzelSize;
 
 	int centriesPerRow = INIT_GRID_DENSITY;
 	int stepX = (width - 100) / (centriesPerRow - 1);
@@ -72,6 +73,7 @@ int KMeans::Pass(vector<vector<cv::Point> > *contours)
 
 void KMeans::MergeTooCloseCentries()
 {
+	int minSquareDist = minPuzzelSize * minPuzzelSize * 4;
 	vector<int> toRemove;
 	for (int centre1 = 0; centre1 + 1 != centres.size(); centre1++)
 	{
@@ -84,7 +86,7 @@ void KMeans::MergeTooCloseCentries()
 
 			int newDist = xDist * xDist + yDist * yDist;
 
-			if (newDist < MIN_SQUARE_DISTANCE &&
+			if (newDist < minSquareDist &&
 				std::find(toRemove.begin(), toRemove.end(), centre2) == toRemove.end()
 				&& std::find(toRemove.begin(), toRemove.end(), centre1) == toRemove.end())
 			{
@@ -293,7 +295,7 @@ vector<IntrestingArea> KMeans::GetPuzzels(Mat &img, Mat& edgeMap)
 
 		auto mergedContour = MergeContours(buffer);
 		auto box = minAreaRect(*mergedContour);
-		if (box.size.height < MIN_RECT_SIZE || box.size.width < MIN_RECT_SIZE)
+		if (box.size.height < minPuzzelSize || box.size.width < minPuzzelSize)
 		{
 			continue;
 		}

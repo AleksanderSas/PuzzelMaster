@@ -12,7 +12,7 @@ using namespace std;
 class PuzzelDetector
 {
 public: 
-	PuzzelDetector(Mat& input);
+	PuzzelDetector(Mat& input, int expectedPuzzelSize);
 	vector<PuzzelRectange*> DetectPuzzels();
 
 	void RemoveTooLongLines(cv::Mat& canny_output);
@@ -28,7 +28,9 @@ private:
 	Mat image_gray;
 	Mat contourDrawing;
 	KMeans knn;
+	int expectedPuzzelSize;
 
 #define MIN_LINE_LEN_TO_REMOVE 80
+#define MIN_PUZZEL_SIZE expectedPuzzelSize * 0.65
 };
 

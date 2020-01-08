@@ -4,7 +4,10 @@
 #include "DebugFlags.h"
 #include "Presenter.h"
 
-PuzzelDetector::PuzzelDetector(Mat& input) : image(input), knn(input.cols, input.rows)
+PuzzelDetector::PuzzelDetector(Mat& input, int expectedPuzzelSize) : 
+	image(input), 
+	knn(input.cols, input.rows, MIN_PUZZEL_SIZE),
+	expectedPuzzelSize(expectedPuzzelSize)
 {
 	cvtColor(input, image_gray, COLOR_BGR2GRAY);
 	blur(image_gray, image_gray, Size(3, 3));
@@ -108,7 +111,7 @@ vector<PuzzelRectange*> PuzzelDetector::DetectPuzzels()
 	unsigned int idSequence = 0;
 	for (IntrestingArea& ia : puzzelAreas)
 	{
-		PuzzelRectange* puzzel = ia.findPuzzel(separator, idSequence);
+		PuzzelRectange* puzzel = ia.findPuzzel(separator, idSequence, MIN_PUZZEL_SIZE);
 		if (puzzel != nullptr)
 			puzzels.push_back(puzzel);
 	}
