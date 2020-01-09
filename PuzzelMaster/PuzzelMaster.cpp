@@ -26,7 +26,7 @@ PuzzelDetector* puzzelDetector;
 // D:\puzzle\test.jpg 120
 // D:\puzzle\3\test_3_1.jpg 75
 // D:\puzzle\3\test_3_3.jpg 75
-// D:\puzzle\4\test_2.jpg 120
+// D:\puzzle\4\test_2.jpg 140
 
 template<typename T, typename S>
 Mat ComposePuzzels(vector<S*>& puzzels, function<Mat(S*)> selector, function<string(S*)> label, Scalar textColor)

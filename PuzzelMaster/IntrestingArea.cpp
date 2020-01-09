@@ -250,7 +250,7 @@ PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Backg
 	PuzzelRectange* bestRects = nullptr;
 	Mat b = getBackgroundMap(AreaImage, separator);
 	Mat edg = getEdgeMapFromBackground(b);
-	int minRectDiagonal = minPuzzelSize * minPuzzelSize;
+	int minRectDiagonal = minPuzzelSize * minPuzzelSize * 2;
 
 	for (vector<Point2f>::iterator left = hSorted.begin(); left != hSorted.end(); left++)
 	{

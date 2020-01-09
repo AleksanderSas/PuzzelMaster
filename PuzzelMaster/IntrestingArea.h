@@ -6,6 +6,7 @@
 #include <vector>
 #include "BackgroundSeparator.h"
 #include "PuzzelRectange.h"
+#include "DebugFlags.h"
 
 using namespace std;
 using namespace cv;

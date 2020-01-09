@@ -127,8 +127,8 @@ void PuzzelRectange::ComputeEdgeFeatures()
 	FindBestCircleJoin(circles, circles2, upper, left, e);
 	ComputeFeatureVector(puzzelArea, upper, left, right, lower, e++);
 	
-	line(puzzelArea, lower, right, Scalar(200, 200, 40));
-	line(puzzelArea, left, upper, Scalar(200, 200, 40));
+	line(puzzelArea, lower, right, Scalar(200, 200, 40), 2);
+	line(puzzelArea, left, upper, Scalar(200, 200, 40), 2);
 }
 
 double compare(uchar a, uchar b)
@@ -624,10 +624,6 @@ Mat PuzzelRectange::ExtractPuzzelAndRotateEdgeToUp(int edgeIdx,int padding)
 
 	drawMarker(rotated, p1, Scalar(125, 200, 40));
 	drawMarker(rotated, p2, Scalar(125, 200, 40));
-
-	/*Point2f p3 = RotatePoint(edgeFeatures[edgeIdx].end, -radius, rotationPoint);
-	Point2f p4 = RotatePoint(edgeFeatures[edgeIdx].start, -radius, rotationPoint);
-	circle(rotated, LinearComb(p3, p4, 0.5), 3, Scalar(100, 200, 100), 3);*/
 
 	Size rect_size(abs(p1.x - p2.x), abs(p1.y - p2.y));
 	rect_size.width += padding * 2;

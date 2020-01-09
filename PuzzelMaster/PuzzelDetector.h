@@ -31,6 +31,6 @@ private:
 	int expectedPuzzelSize;
 
 #define MIN_LINE_LEN_TO_REMOVE 80
-#define MIN_PUZZEL_SIZE expectedPuzzelSize * 0.65
+#define MIN_PUZZEL_SIZE expectedPuzzelSize * 0.75
 };
 
