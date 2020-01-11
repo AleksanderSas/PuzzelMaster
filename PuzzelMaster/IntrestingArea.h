@@ -20,6 +20,8 @@ public:
 	Rect OriginRectange;
 
 private:
+	std::vector<cv::Point2f> FindIntrestingPointsFromImage(double minDistance);
+	void FindIntrestingPointsFromBackgroundLines(cv::Mat& b, double minDistance, std::vector<cv::Point2f>& corners);
 	PuzzelRectange* FindBestRectange(vector<Point2f>& corners, BackgroundSeparator* separator, unsigned int& idSequence, int minPuzzelSize);
 
 	int id;

@@ -35,6 +35,45 @@ static Mat getBackgroundMap(Mat& input, BackgroundSeparator* separator)
 	return output;
 }
 
+static vector<Vec4i> getLinesFromBackground(Mat& map, int minLen = 17, int maxGap = 4)
+{
+	Mat image_gray, canny_output;
+	int cannEdgeThresh = 300;
+	Mat element = getStructuringElement(MORPH_RECT,
+		Size(2, 2),
+		Point(1, 1));
+	blur(map, map, Size(3, 3));
+	Canny(map, canny_output, cannEdgeThresh, cannEdgeThresh * 2);
+
+	dilate(canny_output, canny_output, element);
+
+	vector<Vec4i> lines;
+	HoughLinesP(canny_output, lines, 1, 0.01, 15, minLen, maxGap);
+	return lines;
+}
+
+static void RemoveClose(vector<Point2f> set1, vector<Point2f>& buffer, int minDisatnce)
+{
+	for (auto it = set1.begin(); it != set1.end(); it++)
+	{
+		bool append = true;
+		Point p1(*it);
+		for (auto it2 = it + 1; it2 != set1.end(); it2++)
+		{
+			Point p2(*it2);
+			if (squareDist(p1, p2) < minDisatnce * minDisatnce)
+			{
+				append = false;
+				break;
+			}
+		}
+		if (append)
+		{
+			buffer.push_back(*it);
+		}
+	}
+}
+
 static vector<Point2f> Merge(vector<Point2f> set1, vector<Point2f> set2, int minDisatnce)
 {
 	vector<Point2f> result(set1);
@@ -47,7 +86,7 @@ static vector<Point2f> Merge(vector<Point2f> set1, vector<Point2f> set2, int min
 			if (squareDist(c1, c2) < minDisatnce * minDisatnce)
 			{
 				append = false;
-				continue;
+				break;
 			}
 		}
 		if(append)
@@ -58,33 +97,18 @@ static vector<Point2f> Merge(vector<Point2f> set1, vector<Point2f> set2, int min
 
 PuzzelRectange* IntrestingArea::findPuzzel(BackgroundSeparator* separator, unsigned int& idSequence, int minPuzzelSize)
 {
-	Mat greyMat, score;
-	cv::cvtColor(AreaImage, greyMat, CV_BGR2GRAY);
-
-	int maxCorners = 45;
-	vector<Point2f> corners;
-	double qualityLevel = 0.004;
 	double minDistance = 8;
-
-	goodFeaturesToTrack(greyMat,
-		corners,
-		maxCorners,
-		qualityLevel,
-		minDistance);
-
+	Mat score;
+	vector<Point2f> corners = FindIntrestingPointsFromImage(minDistance);
+	
 	Mat b = getBackgroundMap(AreaImage, separator);
-
-
-#if DRAW_CORNERS
-	for (auto c : corners)
-	{
-		drawMarker(AreaImage, c, Scalar(123, 231, 90));
-	}
+#if USE_INTRESTING_POINTS_FROM_BACKGROUND_LINES
+	FindIntrestingPointsFromBackgroundLines(b, minDistance, corners);
 #endif
 
 #if USE_INTRESTING_POINTS_FROM_BACKGROUND
-	int maxCorners2 = 25;
 	vector<Point2f> corners2;
+	int maxCorners2 = 50;
 	double qualityLevel2 = 0.004;
 
 	goodFeaturesToTrack(b,
@@ -101,11 +125,11 @@ PuzzelRectange* IntrestingArea::findPuzzel(BackgroundSeparator* separator, unsig
 	corners = Merge(corners, corners2, minDistance);
 #endif
 
+	cout << "** nr: " << id << "  Number of corners detected: " << corners.size() << " " << corners.size() << "/" << corners2 .size() << endl;
 #if DRAW_CORNERS
 	imshow(string("conrners_") + to_string(id), AreaImage);
 	return nullptr;
 #endif
-	cout << "** nr: " << id << "  Number of corners detected: " << corners.size() << endl;
 
 	auto result = FindBestRectange(corners, separator, idSequence, minPuzzelSize);
 	if (result != nullptr)
@@ -116,22 +140,56 @@ PuzzelRectange* IntrestingArea::findPuzzel(BackgroundSeparator* separator, unsig
 	return nullptr;
 }
 
+std::vector<cv::Point2f> IntrestingArea::FindIntrestingPointsFromImage(double minDistance)
+{
+	Mat greyMat;
+	std::vector<cv::Point2f> corners;
+	cv::cvtColor(AreaImage, greyMat, CV_BGR2GRAY);
+
+	int maxCorners = 50;
+	double qualityLevel = 0.004;
+
+	goodFeaturesToTrack(greyMat,
+		corners,
+		maxCorners,
+		qualityLevel,
+		minDistance);
+
+#if DRAW_CORNERS
+	for (auto c : corners)
+	{
+		drawMarker(AreaImage, c, Scalar(123, 231, 90));
+	}
+#endif
+	return corners;
+}
+
+void IntrestingArea::FindIntrestingPointsFromBackgroundLines(cv::Mat& b, double minDistance, std::vector<cv::Point2f>& corners)
+{
+	vector<Point2f> corners4;
+	vector<Point2f> corners3;
+
+	vector<Vec4i> lines = getLinesFromBackground(b, 30, 7);
+	for (auto l : lines)
+	{
+		corners3.push_back(Point2f(l[0], l[1]));
+		corners3.push_back(Point2f(l[2], l[3]));
+	}
+	RemoveClose(corners3, corners4, minDistance);
+
+#if DRAW_CORNERS
+	for (auto c : corners4)
+	{
+		circle(AreaImage, c, 2, Scalar(10, 230, 200), 4);
+	}
+#endif
+	corners = Merge(corners, corners4, minDistance);
+}
 
 static Mat getEdgeMapFromBackground(Mat& map)
 {
-	Mat image_gray, canny_output;
-	int cannEdgeThresh = 300;
-	Mat element = getStructuringElement(MORPH_RECT,
-		Size(2, 2),
-		Point(1, 1));
-	blur(map, map, Size(3, 3));
-	Canny(map, canny_output, cannEdgeThresh, cannEdgeThresh * 2);
-
-	dilate(canny_output, canny_output, element);
-
-	vector<Vec4i> lines;
-	Mat edges = Mat::zeros(canny_output.rows, canny_output.cols, CV_8UC1);
-	HoughLinesP(canny_output, lines, 1, 0.01, 15, 17, 4);
+	Mat edges = Mat::zeros(map.rows, map.cols, CV_8UC1);
+	auto lines = getLinesFromBackground(map);
 	for (size_t i = 0; i < lines.size(); i++)
 	{
 		Vec4i l = lines[i];
@@ -250,7 +308,7 @@ PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Backg
 	PuzzelRectange* bestRects = nullptr;
 	Mat b = getBackgroundMap(AreaImage, separator);
 	Mat edg = getEdgeMapFromBackground(b);
-	int minRectDiagonal = minPuzzelSize * minPuzzelSize * 2;
+	int minRectDiagonal = minPuzzelSize * minPuzzelSize * 1.5;
 
 	for (vector<Point2f>::iterator left = hSorted.begin(); left != hSorted.end(); left++)
 	{
