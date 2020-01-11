@@ -106,7 +106,7 @@ vector<PuzzelRectange*> PuzzelDetector::DetectPuzzels()
 	}
 
 	//TODO: delete
-	BackgroundSeparator* separator = new BackgroundSeparator(image, anotherMyObjectList);
+	BackgroundSeparator* separator = new BackgroundSeparator(image, anotherMyObjectList, edgeMap);
 
 	unsigned int idSequence = 0;
 	for (IntrestingArea& ia : puzzelAreas)

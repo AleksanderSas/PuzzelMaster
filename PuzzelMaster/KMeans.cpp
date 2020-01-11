@@ -73,7 +73,7 @@ int KMeans::Pass(vector<vector<cv::Point> > *contours)
 
 void KMeans::MergeTooCloseCentries()
 {
-	int minSquareDist = minPuzzelSize * minPuzzelSize * 4;
+	int minSquareDist = minPuzzelSize * minPuzzelSize * 3;
 	vector<int> toRemove;
 	for (int centre1 = 0; centre1 + 1 != centres.size(); centre1++)
 	{
