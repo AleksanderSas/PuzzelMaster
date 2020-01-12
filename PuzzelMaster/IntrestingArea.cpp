@@ -380,6 +380,10 @@ PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Backg
 							delete candidate;
 						}
 					}
+					else
+					{
+						delete candidate;
+					}
 				}
 			}
 		}
