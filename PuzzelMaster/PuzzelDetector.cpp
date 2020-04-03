@@ -127,8 +127,8 @@ void PuzzelDetector::RemoveTooLongLines(cv::Mat& canny_output)
 	for (size_t i = 0; i < lines.size(); i++)
 	{
 		Vec4i l = lines[i];
-		line(canny_output, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0), 2, CV_AA);
-		line(edges, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(255), 2, CV_AA);
+		line(canny_output, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0), 2, LINE_AA);
+		line(edges, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(255), 2, LINE_AA);
 	}
 
 #if DRAW_TOO_LONG_LINES

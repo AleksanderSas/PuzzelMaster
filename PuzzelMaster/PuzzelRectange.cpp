@@ -59,8 +59,8 @@ void RemoveLines(Mat& edges)
 	for (size_t i = 0; i < lines.size(); i++)
 	{
 		Vec4i l = lines[i];
-		//line(sourceImg, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 0, 255), 1, CV_AA);
-		line(edges, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0), 2, CV_AA);
+		//line(sourceImg, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 0, 255), 1, LINE_AA);
+		line(edges, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0), 2, LINE_AA);
 	}
 }
 

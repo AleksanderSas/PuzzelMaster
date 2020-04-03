@@ -144,7 +144,7 @@ std::vector<cv::Point2f> IntrestingArea::FindIntrestingPointsFromImage(double mi
 {
 	Mat greyMat;
 	std::vector<cv::Point2f> corners;
-	cv::cvtColor(AreaImage, greyMat, CV_BGR2GRAY);
+	cv::cvtColor(AreaImage, greyMat, COLOR_BGR2GRAY);
 
 	int maxCorners = 50;
 	double qualityLevel = 0.004;
@@ -193,8 +193,8 @@ static Mat getEdgeMapFromBackground(Mat& map)
 	for (size_t i = 0; i < lines.size(); i++)
 	{
 		Vec4i l = lines[i];
-		line(map, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(125), 5, CV_AA);
-		line(edges, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(255), 5, CV_AA);
+		line(map, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(125), 5, LINE_AA);
+		line(edges, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(255), 5, LINE_AA);
 	}
 	return edges;
 }
