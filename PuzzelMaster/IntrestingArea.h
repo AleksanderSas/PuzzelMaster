@@ -16,6 +16,7 @@ class IntrestingArea
 public:
 	IntrestingArea(Mat areaImage, Mat edgeMap, Rect originRectange, int id, RotatedRect box);
 	PuzzelRectange* findPuzzel(BackgroundSeparator* separator, unsigned int& idSequence, int minPuzzelSize);
+	void findPuzzel2(BackgroundSeparator* separator, unsigned int idSequence, int minPuzzelSize, PuzzelRectange** result);
 
 	Rect OriginRectange;
 

@@ -13,6 +13,14 @@ PuzzelDetector::PuzzelDetector(Mat& input, int expectedPuzzelSize) :
 	blur(image_gray, image_gray, Size(3, 3));
 }
 
+PuzzelDetector* PuzzelDetector::Create(char* input, int expectedPuzzelSize, int cannEdgeThresh)
+{
+	Mat img = imread(input);
+	PuzzelDetector* detector = new PuzzelDetector(img, expectedPuzzelSize);
+	detector->cannEdgeThresh = cannEdgeThresh;
+	return detector;
+}
+
 Mat PuzzelDetector::ComputeEdgeMap(vector<vector<Point>> &contours)
 {
 	Mat edgeMap = Mat::zeros(image.size(), CV_8U);
@@ -96,7 +104,6 @@ vector<PuzzelRectange*> PuzzelDetector::DetectPuzzels()
 	Presenter::ShowScaledImage("Contours", contoursWithAreas);
 
 	vector<IntrestingArea> puzzelAreas = knn.GetPuzzels(image, edgeMap);
-	vector<PuzzelRectange*> puzzels;
 
 	std::vector<Rect> anotherMyObjectList;
 
@@ -108,14 +115,59 @@ vector<PuzzelRectange*> PuzzelDetector::DetectPuzzels()
 	//TODO: delete
 	BackgroundSeparator* separator = new BackgroundSeparator(image, anotherMyObjectList, edgeMap);
 
+	return AddPuzzelsToList(puzzelAreas, separator);
+}
+
+vector<PuzzelRectange*> PuzzelDetector::AddPuzzelsToList(std::vector<IntrestingArea>& puzzelAreas, BackgroundSeparator*& separator)
+{
+	vector<PuzzelRectange*> puzzels;
+	long long int time = clock();
 	unsigned int idSequence = 0;
+
+#if USE_MULTITHREADING_IN_PUZZEL_DETECTION
+	auto it = puzzelAreas.begin();
+	while (it != puzzelAreas.end())
+	{
+		PuzzelRectange* puzzel1 = nullptr;
+		PuzzelRectange* puzzel3 = nullptr;
+		std::thread t1(&IntrestingArea::findPuzzel2, it._Ptr, separator, idSequence, MIN_PUZZEL_SIZE, &puzzel1);
+		std::thread* t2 = nullptr;
+		if (++it != puzzelAreas.end())
+		{
+			idSequence += 100000000;
+			t2 = new std::thread(&IntrestingArea::findPuzzel2, it._Ptr, separator, idSequence, MIN_PUZZEL_SIZE, &puzzel3);
+		}
+		if (++it != puzzelAreas.end())
+		{
+			idSequence += 100000000;
+			PuzzelRectange* puzzel2 = it->findPuzzel(separator, idSequence, MIN_PUZZEL_SIZE);
+			if (puzzel2 != nullptr)
+				puzzels.push_back(puzzel2);
+			it++;
+		}
+
+		t1.join();
+		if (puzzel1 != nullptr)
+			puzzels.push_back(puzzel1);
+
+		if (t2 != nullptr)
+		{
+			t2->join();
+			if (puzzel3 != nullptr)
+				puzzels.push_back(puzzel3);
+		}
+
+	}
+#else
 	for (IntrestingArea& ia : puzzelAreas)
 	{
 		PuzzelRectange* puzzel = ia.findPuzzel(separator, idSequence, MIN_PUZZEL_SIZE);
 		if (puzzel != nullptr)
 			puzzels.push_back(puzzel);
 	}
-
+#endif
+	time = (clock() - time) * 1000 / CLOCKS_PER_SEC;
+	cout << "Puzzel detection time: " << time << " [ms]" << endl;
 	return puzzels;
 }
 

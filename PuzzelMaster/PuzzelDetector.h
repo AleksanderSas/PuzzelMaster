@@ -12,8 +12,11 @@ using namespace std;
 class PuzzelDetector
 {
 public: 
+	static PuzzelDetector* Create(char* input, int expectedPuzzelSize, int cannEdgeThresh = 50);
 	PuzzelDetector(Mat& input, int expectedPuzzelSize);
 	vector<PuzzelRectange*> DetectPuzzels();
+
+	vector<PuzzelRectange*> AddPuzzelsToList(std::vector<IntrestingArea>& puzzelAreas, BackgroundSeparator*& separator);
 
 	void RemoveTooLongLines(cv::Mat& canny_output);
 

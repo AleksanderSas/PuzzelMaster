@@ -95,6 +95,11 @@ static vector<Point2f> Merge(vector<Point2f> set1, vector<Point2f> set2, int min
 	return result;
 }
 
+void IntrestingArea::findPuzzel2(BackgroundSeparator* separator, unsigned int idSequence, int minPuzzelSize, PuzzelRectange** result)
+{
+	*result = findPuzzel(separator, idSequence, minPuzzelSize);
+}
+
 PuzzelRectange* IntrestingArea::findPuzzel(BackgroundSeparator* separator, unsigned int& idSequence, int minPuzzelSize)
 {
 	double minDistance = 8;

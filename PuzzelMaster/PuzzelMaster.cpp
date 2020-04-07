@@ -18,15 +18,18 @@ using namespace std;
 
 Mat src;
 int expectedPuzzelSize;
+int columns2solve, rows2solve;
 PuzzelDetector* puzzelDetector;
 
 // D:\puzzle\2\test_2_2.jpg 75
 // D:\puzzle\2\test_2_2_mini.jpg 75
 // D:\puzzle\test_3.jpg 75
-// D:\puzzle\test.jpg 120
+// D:\puzzle\test.jpg 120 4 3      <<< OK
 // D:\puzzle\3\test_3_1.jpg 75
 // D:\puzzle\3\test_3_3.jpg 75
-// D:\puzzle\4\test_2.jpg 140
+// D:\puzzle\3\test_3_4.jpg 75 4 4 <<< FAILS
+// D:\puzzle\4\test_2.jpg 140 4 4  <<< OK
+// D:\puzzle\5\test_1.jpg 140 6 6  <<< FAILS
 
 template<typename T, typename S>
 Mat ComposePuzzels(vector<S*>& puzzels, function<Mat(S*)> selector, function<string(S*)> label, Scalar textColor)
@@ -160,9 +163,9 @@ void run()
 
 #if ENABLE_SOLVER
 	auto solver = PuzzelSolver();
-	int columnsToSolve = 4;
 	long long int time = clock();
-	solver.Solve(puzzels, columnsToSolve, 3);
+	cout << "Start solving..." << endl;
+	solver.Solve(puzzels, columns2solve, rows2solve);
 	time = clock() - time;
 	cout << "TIME: " << time << endl;
 	solver.RemoveDuplicateds();
@@ -171,7 +174,7 @@ void run()
 	for (int i = 0; i < min(5, solver.Size()); i++)
 	{
 		string label = string("mosaic - solved ") + to_string(i);
-		Presenter::ShowScaledImage(label.c_str(), ComposeSelectedEdges(solver.GetBest(i), columnsToSolve));
+		Presenter::ShowScaledImage(label.c_str(), ComposeSelectedEdges(solver.GetBest(i), columns2solve));
 	}
 
 	cout << "\n1-ST:\n";
@@ -218,14 +221,16 @@ void DrawSourceImageWithExpectedPuzzelSize(const char* source_window)
 
 int main(int argc, char** argv)
 {
-	if (argc != 3)
+	if (argc != 5)
 	{
-		cout << "Expect 2 parameters: <image_path> <expected_puzzelSize>" << endl;
+		cout << "Expect 2 parameters: <image_path> <expected_puzzelSize> <columns> <rows>" << endl;
 		return 1;
 	}
 
 	src = imread(argv[1]);
 	expectedPuzzelSize = atoi(argv[2]);
+	columns2solve = atoi(argv[3]);
+	rows2solve = atoi(argv[4]);
 
 	if (src.empty())
 	{
