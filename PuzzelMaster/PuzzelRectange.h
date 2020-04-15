@@ -41,7 +41,7 @@ public:
 	double recScore;
 	double areaScore;
 	double noneBackgroundScore;
-	int id;
+	long long int id;
 	bool isPointInside(int x, int y);
 	Mat background;
 	float computeBackgroundSimilarity(Vec3f circle, bool isinside);
@@ -49,13 +49,14 @@ public:
 	float scoreArea(BackgroundSeparator* separator);
 	BackgroundSeparator* backgroundSeparator;
 	void PrintScores();
+	bool HasBoundaryEdge();
 
 	edgeFeature edgeFeatures[4];
 
 	void ComputeEdgeFeatures();
 	void FindNeighbour(vector<PuzzelRectange*>& puzzels, int edgeNr, string name);
 	void FindBestCircleJoin(vector<Vec3f>& circles, vector<Vec3f>& circles2, Point2f c1, Point2f c2, edgeFeature* e);
-	void FindCircleJointCandidates(std::vector<cv::Vec3f>& circles, cv::Point2f& c1, cv::Point2f& c2, float& bestScore, cv::Vec3i& candidate, edgeFeature* e, int offset);
+	float FindCircleJointCandidates(std::vector<cv::Vec3f>& circles, cv::Point2f& c1, cv::Point2f& c2, float& bestScore, cv::Vec3i& candidate, edgeFeature* e, int offset);
 	vector<Vec3f> FindJointCandidates(Mat& puzzelArea, int circleTreshold);
 
 	Vec3f lineParameters_left_upper;
@@ -70,6 +71,9 @@ public:
 
 	void MarkEdgesOnOriginImage(Mat& image);
 	void MarkJointsOnOriginImage(Mat& image);
+
+private:
+	bool hasBoundaryEdge;
 
 #if 1
 	#define MIN_LINE_LEN 18

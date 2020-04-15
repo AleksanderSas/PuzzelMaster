@@ -23,6 +23,8 @@ PuzzelRectange::PuzzelRectange(
 	lineParameters_upper_rigth = ParametrizeLine(upper, right);
 	lineParameters_right_lower = ParametrizeLine(right, lower);
 	lineParameters_lower_left = ParametrizeLine(lower, left);
+
+	hasBoundaryEdge = false;
 }
 
 
@@ -345,7 +347,7 @@ static int distSign(Vec3f &line, int x, int y)
 	return line[0] * x + line[1] * y + line[2];
 }
 
-float PuzzelRectange::computeBackgroundSimilarity(Vec3f circle, bool isinside)
+float PuzzelRectange::computeBackgroundSimilarity(Vec3f circle, bool shouldBeInside)
 {
 	int circleX = circle[0];
 	int circleY = circle[1];
@@ -354,25 +356,32 @@ float PuzzelRectange::computeBackgroundSimilarity(Vec3f circle, bool isinside)
 	float score = 0;
 	int count = 0;
 
-	int yStart = circleY - circleR / 2;
-	int yStop = MIN(circleY + circleR / 2, puzzelArea.rows);
+	int yStart = circleY - circleR;
+	int yStop = MIN(circleY + circleR, puzzelArea.rows);
 	for (int y = MAX(0, yStart); y < yStop; y++)
 	{
-		int xStart = circleX - circleR / 2;
-		int xStop = MIN(circleX + circleR / 2, puzzelArea.cols);
+		int xStart = circleX - circleR;
+		int xStop = MIN(circleX + circleR, puzzelArea.cols);
 		for (int x = MAX(0, xStart); x < xStop; x++)
 		{
 			int dx = x - circleX;
 			int dy = y - circleY;
 			bool _isPointInside = isPointInside(x, y);
-			if (dx * dx + dy * dy <= circleR_2 && (isinside && _isPointInside || !isinside && !_isPointInside))
+			if (dx * dx + dy * dy <= circleR_2)
 			{
-				Vec3b pixel = puzzelArea.at<Vec3b>(y, x);
-				float tmp = isinside ? isBackground(pixel) : isNotBackground(pixel);
-				if (!isnan(tmp))
+				if (shouldBeInside && _isPointInside || !shouldBeInside && !_isPointInside)
+				{
+					Vec3b pixel = puzzelArea.at<Vec3b>(y, x);
+					float tmp = shouldBeInside ? isBackground(pixel) : isNotBackground(pixel);
+					if (!isnan(tmp))
+					{
+						count++;
+						score += tmp;
+					}
+				}
+				else
 				{
 					count++;
-					score += tmp;
 				}
 			}
 		}
@@ -425,8 +434,12 @@ void PuzzelRectange::FindBestCircleJoin(vector<Vec3f>& circles, vector<Vec3f>& c
 {
 	Vec3i candidate;
 	float bestScore = -9999;
-	FindCircleJointCandidates(circles, c1, c2, bestScore, candidate, e, 0);
-	FindCircleJointCandidates(circles2, c1, c2, bestScore, candidate, e, circles.size() / 3);
+	float bestCircleScore1 = FindCircleJointCandidates(circles, c1, c2, bestScore, candidate, e, 0);
+	float bestCircleScore2 = FindCircleJointCandidates(circles2, c1, c2, bestScore, candidate, e, circles.size() / 3);
+	float bestCircleScore = MAX(bestCircleScore1, bestCircleScore2);
+	e->hasJoint = bestCircleScore > 0.30;
+	hasBoundaryEdge |= !e->hasJoint;
+
 	cout << endl;
 
 	if (e->hasJoint)
@@ -439,37 +452,40 @@ void PuzzelRectange::FindBestCircleJoin(vector<Vec3f>& circles, vector<Vec3f>& c
 	circle(puzzelArea, center, 1, e->isMaleJoint? Scalar(0, 100, 100) : Scalar(100, 40, 200), 3, LINE_AA);
 }
 
-void PuzzelRectange::FindCircleJointCandidates(std::vector<cv::Vec3f>& circles, cv::Point2f& c1, cv::Point2f& c2, float& bestScore, cv::Vec3i& candidate, edgeFeature* e, int offset)
+float PuzzelRectange::FindCircleJointCandidates(std::vector<cv::Vec3f>& circles, cv::Point2f& c1, cv::Point2f& c2, float& bestScore, cv::Vec3i& candidate, edgeFeature* e, int offset)
 {
 	vector<Vec3f> finalCircles;
 
 	SelectCirclesAlignedToEdge(circles, c1, c2, finalCircles);
-
+	float bestCircleScore = 0.0;
 	for (size_t i = 0; i < finalCircles.size(); i++)
 	{
 		Vec3i _circle = finalCircles[i];
 		float orderScore = 1.0 * (1.0 - (1.0 * i + offset) / (finalCircles.size() + offset));
 		float coverScore = scoreCircle(_circle);
-		float condidateScore = coverScore + orderScore;
+		float condidateScore = coverScore * orderScore;
 		if (bestScore < condidateScore && coverScore > MIN_COVER_SCORE)
 		{
 			candidate = _circle;
 			bestScore = condidateScore;
-			e->hasJoint = true;
+			bestCircleScore = coverScore;
 		}
 
 #if 0
-		unsigned int colorIdx = (((long long int)e) >> 3) % 16;
+		if (id != 200251157 || e - edgeFeatures != 1)
+			continue;
+		unsigned int colorIdx = i % 16;
 		unsigned char* c = Utils::GetColorFromTable(colorIdx);
 		Scalar color(c[2], c[1], c[0]);
 
 		int radius = _circle[2];
 		char buffer[255];
-		sprintf_s(buffer, "joint score:  %f  %f  %f  %s\n", condidateScore, condidateScore - orderScore, orderScore, coverScore > MIN_COVER_SCORE ? "" : "XXX");
+		sprintf_s(buffer, "joint score:  T %f    Ord %f   Cov %f  %s\n", condidateScore, orderScore, coverScore, coverScore > MIN_COVER_SCORE ? "" : "XXX");
 		Utils::WriteColoredText(string(buffer), colorIdx);
 		circle(puzzelArea, Point(_circle[0], _circle[1]), radius, color / (coverScore > MIN_COVER_SCORE ? 1 : 2), 1, LINE_AA);
 #endif
 	}
+	return bestCircleScore;
 }
 
 bool PuzzelRectange::isPointInside(int x, int y)
@@ -590,6 +606,12 @@ void PuzzelRectange::MarkJointsOnOriginImage(Mat& image)
 			Point2f p1 = TransformPoint(Point2f(joint.joint[0], joint.joint[1]), box);
 			circle(image, p1, 2, joint.isMaleJoint ? Scalar(250, 255, 50) : Scalar(90, 30, 255), 3, LINE_AA);
 		}
+		else
+		{
+			cout << "no edge: " << id << endl;
+			Point2f centre = TransformPoint(LinearComb(joint.end, joint.start, 0.5), box);
+			circle(image, centre, 3, Scalar(200, 40, 40), 4, LINE_AA);
+		}
 	}
 }
 
@@ -631,4 +653,9 @@ Mat PuzzelRectange::ExtractPuzzelAndRotateEdgeToUp(int edgeIdx,int padding)
 
 	getRectSubPix(rotated, rect_size, rotationPoint, cropped);
 	return cropped;
+}
+
+bool PuzzelRectange::HasBoundaryEdge()
+{
+	return hasBoundaryEdge;
 }
