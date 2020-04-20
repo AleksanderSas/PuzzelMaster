@@ -27,7 +27,7 @@ class PuzzelRectange
 {
 public:
 	static pair<double, int> CompareFeatureVectors(edgeFeature* e1, edgeFeature* e2);
-	PuzzelRectange(Point2f& left, Point2f& right, Point2f& lower, Point2f& upper, int id, BackgroundSeparator* backgroundSeparator, RotatedRect box);
+	PuzzelRectange(Point2f& left, Point2f& right, Point2f& lower, Point2f& upper, long long int id, long long int intrestingAreaId, BackgroundSeparator* backgroundSeparator, RotatedRect box);
 
 	Mat ExtractPuzzelAndRotateEdgeToUp(int edgeIdx, int padding);
 	Point2f left, right, lower, upper;
@@ -41,7 +41,7 @@ public:
 	double recScore;
 	double areaScore;
 	double noneBackgroundScore;
-	long long int id;
+	long long int id, intrestingAreaId;
 	bool isPointInside(int x, int y);
 	Mat background;
 	float computeBackgroundSimilarity(Vec3f circle, bool isinside);
@@ -71,6 +71,7 @@ public:
 
 	void MarkEdgesOnOriginImage(Mat& image);
 	void MarkJointsOnOriginImage(Mat& image);
+	string GetId();
 
 private:
 	bool hasBoundaryEdge;

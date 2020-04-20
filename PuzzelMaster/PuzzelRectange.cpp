@@ -14,10 +14,11 @@ PuzzelRectange::PuzzelRectange(
 	Point2f& right, 
 	Point2f& lower, 
 	Point2f& upper, 
-	int id, 
+	long long int id,
+	long long int intrestingAreaId,
 	BackgroundSeparator* _backgroundSeparator,
 	RotatedRect box)
-	: left(left), right(right), lower(lower), upper(upper), id(id), backgroundSeparator(_backgroundSeparator), box(box)
+	: left(left), right(right), lower(lower), upper(upper), id(id), backgroundSeparator(_backgroundSeparator), box(box), intrestingAreaId(intrestingAreaId)
 {
 	lineParameters_left_upper = ParametrizeLine(left, upper);
 	lineParameters_upper_rigth = ParametrizeLine(upper, right);
@@ -557,7 +558,7 @@ void PuzzelRectange::PrintScores()
 {
 	cout << " n=" << id
 		<< "\t total score=" << score
-		<< "  background hit score=" << backgroundEdgeHitScore
+		<< "  background edge hit score=" << backgroundEdgeHitScore
 		<< "  image hit score=" << imageEdgeHitScore
 		<< "  rec score=" << recScore
 		<< "  area score=" << areaScore
@@ -658,4 +659,9 @@ Mat PuzzelRectange::ExtractPuzzelAndRotateEdgeToUp(int edgeIdx,int padding)
 bool PuzzelRectange::HasBoundaryEdge()
 {
 	return hasBoundaryEdge;
+}
+
+string PuzzelRectange::GetId()
+{
+	return to_string(id) + " : " + to_string(intrestingAreaId);
 }

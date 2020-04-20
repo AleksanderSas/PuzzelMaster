@@ -117,17 +117,17 @@ Mat ComposePuzzels(vector<S*>& puzzels, function<Mat(S*)> selector, function<str
 
 Mat ComposePuzzels(vector<PuzzelRectange*>& puzzels)
 {
-	return ComposePuzzels<Vec3b, PuzzelRectange>(puzzels, [](PuzzelRectange* p) {return p->puzzelArea; }, [](PuzzelRectange* p) {return to_string(p->id); }, Scalar(0, 0, 255));
+	return ComposePuzzels<Vec3b, PuzzelRectange>(puzzels, [](PuzzelRectange* p) {return p->puzzelArea; }, [](PuzzelRectange* p) {return p->GetId(); }, Scalar(0, 0, 255));
 }
 
 Mat ComposeBackgroundEdges(vector<PuzzelRectange*>& puzzels)
 {
-	return ComposePuzzels<unsigned char, PuzzelRectange>(puzzels, [](PuzzelRectange* p) {return p->backgroundEdges; }, [](PuzzelRectange* p) {return to_string(p->id); }, Scalar(255));
+	return ComposePuzzels<unsigned char, PuzzelRectange>(puzzels, [](PuzzelRectange* p) {return p->backgroundEdges; }, [](PuzzelRectange* p) {return p->GetId(); }, Scalar(255));
 }
 
 Mat ComposeEdges(vector<PuzzelRectange*>& puzzels)
 {
-	return ComposePuzzels<unsigned char, PuzzelRectange>(puzzels, [](PuzzelRectange* p) {return p->edges; }, [](PuzzelRectange* p) {return to_string(p->id); }, Scalar(255));
+	return ComposePuzzels<unsigned char, PuzzelRectange>(puzzels, [](PuzzelRectange* p) {return p->edges; }, [](PuzzelRectange* p) {return p->GetId(); }, Scalar(255));
 }
 
 Mat ComposeSelectedEdges(Token* lastToken, int puzzelsPerRow)

@@ -133,7 +133,7 @@ PuzzelRectange* IntrestingArea::findPuzzel(BackgroundSeparator* separator, unsig
 	cout << "** nr: " << id << "  Number of corners detected: " << corners.size() << " " << corners.size() << "/" << corners2 .size() << endl;
 #if DRAW_CORNERS
 	imshow(string("conrners_") + to_string(id), AreaImage);
-	return nullptr;
+    return nullptr;
 #endif
 
 	auto result = FindBestRectange(corners, separator, idSequence, minPuzzelSize);
@@ -199,8 +199,11 @@ static Mat getEdgeMapFromBackground(Mat& map)
 	{
 		Vec4i l = lines[i];
 		line(map, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(125), 5, LINE_AA);
-		line(edges, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(255), 5, LINE_AA);
+		line(edges, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(255), 6, LINE_AA);
 	}
+#if USE_BLURED_BACKGROUND_LINES
+	blur(edges, edges, Size(6, 6));
+#endif
 	return edges;
 }
 
@@ -349,7 +352,7 @@ PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Backg
 						continue;
 					}
 
-					PuzzelRectange* candidate = new PuzzelRectange(*left, *right, *lower, *upper, idSequence++, separator, box);
+					PuzzelRectange* candidate = new PuzzelRectange(*left, *right, *lower, *upper, idSequence++, id, separator, box);
 					candidate->puzzelArea = AreaImage;
 					candidate->backgroundEdges = edg;
 					candidate->backgroundMap = b;
@@ -361,7 +364,7 @@ PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Backg
 						//totalScore *= noneBackgroundScore;
 						candidate->backgroundEdgeHitScore = ComputeHitScore(edg, candidate);
 						candidate->imageEdgeHitScore = ComputeHitScore(EdgeMap, candidate);
-						
+
 						if (candidate->backgroundEdgeHitScore < 0.15)
 						{
 							continue;
@@ -374,7 +377,7 @@ PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Backg
 						candidate->score = totalScore;
 #if VERBOSE
 						cout << "C  ";
-						candidate->PrintScores(); 
+						candidate->PrintScores();
 #endif
 						if (bestRects == nullptr || candidate->score > bestRects->score)
 						{

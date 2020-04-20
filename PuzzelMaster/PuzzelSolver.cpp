@@ -3,6 +3,7 @@
 #include <set>
 #include "Utils.h"
 #include <iostream>
+#include "DebugFlags.h"
 
 //e1 is NOT null
 static bool edgesMatch(edgeFeature* e1, edgeFeature* e2)
@@ -10,17 +11,35 @@ static bool edgesMatch(edgeFeature* e1, edgeFeature* e2)
 	return e2 == nullptr || e1->isMaleJoint ^ e2->isMaleJoint && e1->hasJoint && e2->hasJoint;
 }
 
+static edgeFeature* getEdge(Token* token, int offset)
+{
+	return token != nullptr ? (token->puzzel->edgeFeatures + ((token->pozzelRotation + offset) % 4)) : nullptr;
+}
+
+static bool edgestMismatch(edgeFeature* e1, edgeFeature* e2)
+{
+	return e2 != nullptr && e1->hasJoint ^ e2->hasJoint;
+}
+
 double leftScores[4];
 double upperScores[4];
 void PuzzelSolver::ScoreRotations(PuzzelRectange* p, Token* left, Token* upper)
 {
-	edgeFeature* e1_1 = left != nullptr? left->puzzel->edgeFeatures + ((left->pozzelRotation + 2) % 4) : nullptr;
-	edgeFeature* e2_1 = upper!= nullptr? upper->puzzel->edgeFeatures + ((upper->pozzelRotation + 3) % 4) : nullptr;
+	edgeFeature* e1_1 = getEdge(left, 2);
+	edgeFeature* leftPuzzel_upperEdeg = getEdge(left, 1);
+	edgeFeature* leftPuzzel_bottomEdge = getEdge(left, 3);
+
+	edgeFeature* e2_1 = getEdge(upper, 3);
+	edgeFeature* upperPuzzel_leftEdge= getEdge(upper, 0);
+	edgeFeature* upperPuzzel_rigthEdge= getEdge(upper, 2);
 
 	for (int i = 0; i < 4; i++)
 	{
 		edgeFeature* e1_2 = p->edgeFeatures + i;
 		edgeFeature* e2_2 = p->edgeFeatures + ((i + 1) % 4);
+
+		edgeFeature* rigth_edge = p->edgeFeatures + ((i + 2) % 4);
+		edgeFeature* bottom_edge = p->edgeFeatures + ((i + 3) % 4);
 		if (edgesMatch(e1_2, e1_1) && edgesMatch(e2_2, e2_1))
 		{
 			leftScores[i] = 0.0;
@@ -28,20 +47,35 @@ void PuzzelSolver::ScoreRotations(PuzzelRectange* p, Token* left, Token* upper)
 			if (e1_1 != nullptr)
 			{
 #if USE_CACHE_IN_SOLVER
-				auto s = PuzzelRectange::CompareFeatureVectors(e1_2, e1_1);
-#else
 				auto s = cache->GetFromCashe(p->id, left->puzzel->id, i, (left->pozzelRotation + 2) % 4);
+#else
+				auto s = PuzzelRectange::CompareFeatureVectors(e1_2, e1_1);
 #endif
 				leftScores[i] = s.first + s.second;
+#if TAKE_INTO_ACCOUNT_EDGES
+				if(edgestMismatch(e2_2, leftPuzzel_upperEdeg) ||
+				  edgestMismatch(bottom_edge, leftPuzzel_bottomEdge))
+				{
+					leftScores[i] *= 1.5;
+				}
+#endif
 			}
 			if (e2_1 != nullptr)
 			{
 #if USE_CACHE_IN_SOLVER
-				auto s = PuzzelRectange::CompareFeatureVectors(e2_2, e2_1);
-#else
 				auto s = cache->GetFromCashe(p->id, upper->puzzel->id, ((i + 1) % 4), (upper->pozzelRotation + 3) % 4);
+#else
+				auto s = PuzzelRectange::CompareFeatureVectors(e2_2, e2_1);
 #endif
 				upperScores[i] = s.first + s.second;
+
+#if TAKE_INTO_ACCOUNT_EDGES
+				if (edgestMismatch(e1_2, upperPuzzel_leftEdge) ||
+					edgestMismatch(rigth_edge, upperPuzzel_rigthEdge))
+				{
+					upperScores[i] *= 1.5;
+				}
+#endif
 			}
 		}
 		else
@@ -85,27 +119,31 @@ static bool compareTokens(Token* t1, Token* t2)
 
 void PuzzelSolver::Solve(vector<PuzzelRectange*>& puzzels, int columns, int rows)
 {
+	this->columns = columns;
+	this->rows = rows;
+
 	Initialize(puzzels);
 	cache = new FeatureVectorCache(puzzels);
 
 	//TODO: lepsza kolejnosc -> kaskadowo?
 	for (int y = 0; y < rows; y++)
 	{
-		for (int x = (y == 0? 1 : 0); x < columns; x++)
-		{
-			for (Token* token : PreviousHipothesis)
-			{
-				AddHipothesisForToken(token, puzzels, y, columns);
-			}
+		for (int x = (y == 0 ? 1 : 0); x < columns; x++)
+	    {
+		    for (Token* token : PreviousHipothesis)
+		    {
+		    	AddHipothesisForToken(token, puzzels, y, x);
+		    }
 
-			TruncateHipothesis();
-		}
+		    TruncateHipothesis();
+	    }
 	}
+
 	delete cache;
 	cout << endl << "Token remains: " << Token::counter <<  endl;
 }
 
-void PuzzelSolver::AddHipothesisForToken(Token* token, std::vector<PuzzelRectange*>& puzzels, int y, int columns)
+void PuzzelSolver::AddHipothesisForToken(Token* token, std::vector<PuzzelRectange*>& puzzels, int y, int x)
 {
 	shared_ptr<Token> parent(token);
 	auto usedPuzzelIDs = getUsedPuzzels(token);
@@ -115,6 +153,7 @@ void PuzzelSolver::AddHipothesisForToken(Token* token, std::vector<PuzzelRectang
 		{
 			continue;
 		}
+
 		Token* left = GetLeftToken(token, y);
 		Token* upper = GetUpperToken(token, columns);
 		ScoreRotations(puzzel, left, upper);
@@ -158,7 +197,7 @@ void PuzzelSolver::TruncateHipothesis()
 
 void PuzzelSolver::Initialize(std::vector<PuzzelRectange*>& puzzels)
 {
-	//PuzzelRectange* puzzel = puzzels[10];
+	//PuzzelRectange* puzzel = puzzels[38];
 	for (PuzzelRectange* puzzel : puzzels)
 	{
 		for (int i = 0; i < 4; i++)
@@ -193,6 +232,11 @@ int PuzzelSolver::Size() const
 
 void PuzzelSolver::PrintHistory(int nth)
 {
+	if (PreviousHipothesis.size() <= nth)
+	{
+		cout << to_string(nth) + ". hypothesis not available, only " << to_string(PreviousHipothesis.size()) + " solutions" << endl;
+		return;
+	}
 	Token* current = PreviousHipothesis[nth];
 	Token* previour = current->previous.get();
 	string message;

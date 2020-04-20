@@ -14,12 +14,13 @@ public:
 	void RemoveDuplicateds();
 
 private:
+	int columns, rows;
 	FeatureVectorCache *cache;
 	vector<Token*> CurrentHipothesis;
 	vector<Token*> PreviousHipothesis;
 
 	void Initialize(std::vector<PuzzelRectange*>& puzzels);
-	void AddHipothesisForToken(Token* token, std::vector<PuzzelRectange*>& puzzels, int y, int columns);
+	void AddHipothesisForToken(Token* token, std::vector<PuzzelRectange*>& puzzels, int y, int x);
 	void ScoreRotations(PuzzelRectange* p, Token* left, Token* upper);
 	void TruncateHipothesis();
 };
