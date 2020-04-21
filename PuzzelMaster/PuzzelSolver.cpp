@@ -56,7 +56,7 @@ void PuzzelSolver::ScoreRotations(PuzzelRectange* p, Token* left, Token* upper)
 				if(edgestMismatch(e2_2, leftPuzzel_upperEdeg) ||
 				  edgestMismatch(bottom_edge, leftPuzzel_bottomEdge))
 				{
-					leftScores[i] *= 1.5;
+					leftScores[i] *= 16;
 				}
 #endif
 			}
@@ -73,7 +73,7 @@ void PuzzelSolver::ScoreRotations(PuzzelRectange* p, Token* left, Token* upper)
 				if (edgestMismatch(e1_2, upperPuzzel_leftEdge) ||
 					edgestMismatch(rigth_edge, upperPuzzel_rigthEdge))
 				{
-					upperScores[i] *= 1.5;
+					upperScores[i] *= 16;
 				}
 #endif
 			}
@@ -136,6 +136,7 @@ void PuzzelSolver::Solve(vector<PuzzelRectange*>& puzzels, int columns, int rows
 		    }
 
 		    TruncateHipothesis();
+			cout << y * columns + x + 1 << "/" << columns * rows << endl;
 	    }
 	}
 
@@ -149,6 +150,10 @@ void PuzzelSolver::AddHipothesisForToken(Token* token, std::vector<PuzzelRectang
 	auto usedPuzzelIDs = getUsedPuzzels(token);
 	for (PuzzelRectange* puzzel : puzzels)
 	{
+		//puzzel has boundary
+		if (puzzel->HasBoundaryEdge() && y != 0 && x != 0 && x != columns - 1 && y != rows - 1)
+			continue;
+
 		if (usedPuzzelIDs.find(puzzel->id) != usedPuzzelIDs.end())
 		{
 			continue;
@@ -197,7 +202,7 @@ void PuzzelSolver::TruncateHipothesis()
 
 void PuzzelSolver::Initialize(std::vector<PuzzelRectange*>& puzzels)
 {
-	//PuzzelRectange* puzzel = puzzels[38];
+	//PuzzelRectange* puzzel = puzzels[7];
 	for (PuzzelRectange* puzzel : puzzels)
 	{
 		for (int i = 0; i < 4; i++)

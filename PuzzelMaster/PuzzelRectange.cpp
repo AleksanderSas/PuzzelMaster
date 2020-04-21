@@ -186,13 +186,13 @@ static double feature(vector<Vec3b>& v1, vector<Vec3b>& v2, int s1, int s2)
 static double featureWithShift(vector<Vec3b>& v1, vector<Vec3b>& v2)
 {
 	double best = DBL_MAX;
-	for (int i = 0; i < 3; i++)
+	for (int i = 0; i <= 18; i += 2)
 	{
 		double current = feature(v1, v2, 0, i);
 		if (current < best)
 			best = current;
 	}
-	for (int i = 1; i < 3; i++)
+	for (int i = 1; i <= 19; i += 2)
 	{
 		double current = feature(v1, v2, i, 0);
 		if (current < best)
@@ -438,7 +438,7 @@ void PuzzelRectange::FindBestCircleJoin(vector<Vec3f>& circles, vector<Vec3f>& c
 	float bestCircleScore1 = FindCircleJointCandidates(circles, c1, c2, bestScore, candidate, e, 0);
 	float bestCircleScore2 = FindCircleJointCandidates(circles2, c1, c2, bestScore, candidate, e, circles.size() / 3);
 	float bestCircleScore = MAX(bestCircleScore1, bestCircleScore2);
-	e->hasJoint = bestCircleScore > 0.30;
+	e->hasJoint = bestCircleScore > 0.275;
 	hasBoundaryEdge |= !e->hasJoint;
 
 	cout << endl;
@@ -447,10 +447,15 @@ void PuzzelRectange::FindBestCircleJoin(vector<Vec3f>& circles, vector<Vec3f>& c
 	{
 		e->isMaleJoint = isPointInside(candidate[0], candidate[1]);
 		e->joint = candidate;
+		Point center = Point(candidate[0], candidate[1]);
+		circle(puzzelArea, center, 3, e->isMaleJoint? Scalar(0, 100, 100) : Scalar(100, 40, 200), 4, LINE_AA);
+	}
+	else
+	{
+		Point2f center = LinearComb(e->end, e->start, 0.5);
+		circle(puzzelArea, center, 3, Scalar(200, 40, 40), 4, LINE_AA);
 	}
 
-	Point center = Point(candidate[0], candidate[1]);
-	circle(puzzelArea, center, 1, e->isMaleJoint? Scalar(0, 100, 100) : Scalar(100, 40, 200), 3, LINE_AA);
 }
 
 float PuzzelRectange::FindCircleJointCandidates(std::vector<cv::Vec3f>& circles, cv::Point2f& c1, cv::Point2f& c2, float& bestScore, cv::Vec3i& candidate, edgeFeature* e, int offset)
@@ -473,7 +478,7 @@ float PuzzelRectange::FindCircleJointCandidates(std::vector<cv::Vec3f>& circles,
 		}
 
 #if 0
-		if (id != 200251157 || e - edgeFeatures != 1)
+		if (id != 20244583 || e - edgeFeatures != 0)
 			continue;
 		unsigned int colorIdx = i % 16;
 		unsigned char* c = Utils::GetColorFromTable(colorIdx);
@@ -484,6 +489,7 @@ float PuzzelRectange::FindCircleJointCandidates(std::vector<cv::Vec3f>& circles,
 		sprintf_s(buffer, "joint score:  T %f    Ord %f   Cov %f  %s\n", condidateScore, orderScore, coverScore, coverScore > MIN_COVER_SCORE ? "" : "XXX");
 		Utils::WriteColoredText(string(buffer), colorIdx);
 		circle(puzzelArea, Point(_circle[0], _circle[1]), radius, color / (coverScore > MIN_COVER_SCORE ? 1 : 2), 1, LINE_AA);
+		imshow("dsasdasd", puzzelArea);
 #endif
 	}
 	return bestCircleScore;
@@ -605,13 +611,13 @@ void PuzzelRectange::MarkJointsOnOriginImage(Mat& image)
 		if (joint.hasJoint)
 		{
 			Point2f p1 = TransformPoint(Point2f(joint.joint[0], joint.joint[1]), box);
-			circle(image, p1, 2, joint.isMaleJoint ? Scalar(250, 255, 50) : Scalar(90, 30, 255), 3, LINE_AA);
+			circle(image, p1, 3, joint.isMaleJoint ? Scalar(250, 255, 50) : Scalar(90, 30, 255), 4, LINE_AA);
 		}
 		else
 		{
 			cout << "no edge: " << id << endl;
 			Point2f centre = TransformPoint(LinearComb(joint.end, joint.start, 0.5), box);
-			circle(image, centre, 3, Scalar(200, 40, 40), 4, LINE_AA);
+			circle(image, centre, 4, Scalar(200, 40, 40), 5, LINE_AA);
 		}
 	}
 }
