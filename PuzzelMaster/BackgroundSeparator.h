@@ -12,6 +12,8 @@ public:
 	BackgroundSeparator(Mat& img, vector<Rect> puzzelCandidateAreas, Mat& edgeMap);
 	float scorePoint(Vec3b* pixel);
 
+	Mat getBackgroundMap(Mat& input);
+
 private:
 	Mat& image;
 	Mat& edgeMap;
@@ -29,7 +31,7 @@ private:
 	int ProcessXPlus(int j, int i, bool& processX);
 	int ProcessXMinus(int j, int i, bool& processX);
 
-#define EDGE_MATCH_PADDING 3
+#define EDGE_MATCH_PADDING 10
 #define QUBE_BIN 4
 #define QUBE_SIZE (256 / QUBE_BIN)
 #define TOTAL_QUBE_SIZE QUBE_SIZE * QUBE_SIZE * QUBE_SIZE

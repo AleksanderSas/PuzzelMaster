@@ -12,29 +12,6 @@ IntrestingArea:: IntrestingArea(Mat areaImage, Mat edgeMap, Rect originRectange,
 	box(box)
 {}
 
-static Mat getBackgroundMap(Mat& input, BackgroundSeparator* separator)
-{
-	Mat output = Mat::zeros(input.rows, input.cols, CV_8UC1);
-	int count = 0;
-	float score = 0.0;
-	Vec3b* p_source;
-	unsigned char* p_dest;
-	for (int i = 0; i < input.rows; ++i)
-	{
-		p_source = input.ptr<Vec3b>(i);
-		p_dest = output.ptr<unsigned char>(i);
-		for (int j = 0; j < input.cols; ++j, ++p_source, ++p_dest)
-		{
-			float nondebackgroundProbability = (1 - separator->scorePoint(p_source));
-			if (!isnan(nondebackgroundProbability))
-			{
-				*p_dest = nondebackgroundProbability * 255;
-			}
-		}
-	}
-	return output;
-}
-
 static vector<Vec4i> getLinesFromBackground(Mat& map, int minLen = 17, int maxGap = 4)
 {
 	Mat image_gray, canny_output;
@@ -101,9 +78,10 @@ PuzzelRectange* IntrestingArea::findPuzzel(BackgroundSeparator* separator, unsig
 	Mat score;
 	vector<Point2f> corners = FindIntrestingPointsFromImage(minDistance);
 	
-	Mat b = getBackgroundMap(AreaImage, separator);
+	Mat b = separator->getBackgroundMap(AreaImage);
 #if USE_INTRESTING_POINTS_FROM_BACKGROUND_LINES
-	FindIntrestingPointsFromBackgroundLines(b, minDistance, corners);
+	auto corners3 = FindIntrestingPointsFromBackgroundLines(b, minDistance);
+	corners = Merge(corners, corners3, minDistance);
 #endif
 
 #if USE_INTRESTING_POINTS_FROM_BACKGROUND
@@ -164,7 +142,7 @@ std::vector<cv::Point2f> IntrestingArea::FindIntrestingPointsFromImage(double mi
 	return corners;
 }
 
-void IntrestingArea::FindIntrestingPointsFromBackgroundLines(cv::Mat& b, double minDistance, std::vector<cv::Point2f>& corners)
+vector<Point2f> IntrestingArea::FindIntrestingPointsFromBackgroundLines(cv::Mat& b, double minDistance)
 {
 	vector<Point2f> corners4;
 	vector<Point2f> corners3;
@@ -183,7 +161,7 @@ void IntrestingArea::FindIntrestingPointsFromBackgroundLines(cv::Mat& b, double 
 		circle(AreaImage, c, 2, Scalar(10, 230, 200), 4);
 	}
 #endif
-	corners = Merge(corners, corners4, minDistance);
+	return corners4;
 }
 
 static Mat getEdgeMapFromBackground(Mat& map)
@@ -306,7 +284,7 @@ PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Backg
 	sort(hSorted.begin(), hSorted.end(), hComparer);
 
 	PuzzelRectange* bestRects = nullptr;
-	Mat b = getBackgroundMap(AreaImage, separator);
+	Mat b = separator->getBackgroundMap(AreaImage);
 	Mat edg = getEdgeMapFromBackground(b);
 	int minRectDiagonal = minPuzzelSize * minPuzzelSize * 1.5;
 

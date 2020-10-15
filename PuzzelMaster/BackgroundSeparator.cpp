@@ -120,7 +120,8 @@ void BackgroundSeparator::UpdateMap(bool processX, int startX, int endX, cv::Mat
 	}
 	if (processX || processY)
 	{
-		destinationMap.at<unsigned char>(i, j) = acc / k;
+		unsigned char avg = acc / k;
+		destinationMap.at<unsigned char>(i, j) = max - avg > avg - min ? min : max;;
 	}
 }
 
@@ -258,4 +259,27 @@ float BackgroundSeparator::scorePoint(Vec3b* pixel)
 	float colorProb = getQubeColorBin(pixel);
 
 	return (bProp / colorProb * backgroundProbability);
+}
+
+Mat BackgroundSeparator::getBackgroundMap(Mat& input)
+{
+	Mat output = Mat::zeros(input.rows, input.cols, CV_8UC1);
+	int count = 0;
+	float score = 0.0;
+	Vec3b* p_source;
+	unsigned char* p_dest;
+	for (int i = 0; i < input.rows; ++i)
+	{
+		p_source = input.ptr<Vec3b>(i);
+		p_dest = output.ptr<unsigned char>(i);
+		for (int j = 0; j < input.cols; ++j, ++p_source, ++p_dest)
+		{
+			float nondebackgroundProbability = (1 - scorePoint(p_source));
+			if (!isnan(nondebackgroundProbability))
+			{
+				*p_dest = nondebackgroundProbability * 255;
+			}
+		}
+	}
+	return output;
 }
