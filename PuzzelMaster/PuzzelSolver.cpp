@@ -250,14 +250,15 @@ void PuzzelSolver::PrintHistory(int nth)
 	{
 		int score = current->score - previour->score;
 		sprintf_s(buffer,
-			"%d\t->  %d  \t L: %g (%d->%d)  U: %g   T: %d\n",
+			"%d\t->  %d  \t L: %g (%d->%d)  U: %g   T: %d       \tTotal: %d\n",
 			previour->puzzel->id,
 			current->puzzel->id,
 			current->leftScore,
 			(previour->pozzelRotation + 2) % 4,
 			current->pozzelRotation,
 			current->upperScore,
-			score);
+			score,
+			current->score);
 		message = string(buffer) + message;
 		current = previour;
 		previour = previour->previous.get();

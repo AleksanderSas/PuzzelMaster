@@ -133,7 +133,7 @@ PuzzelRectange* IntrestingArea::findPuzzel(BackgroundSeparator* separator, unsig
 	cout << "** nr: " << id << "  Number of corners detected: " << corners.size() << " " << corners.size() << "/" << corners2 .size() << endl;
 #if DRAW_CORNERS
 	imshow(string("conrners_") + to_string(id), AreaImage);
-    return nullptr;
+	return nullptr;
 #endif
 
 	auto result = FindBestRectange(corners, separator, idSequence, minPuzzelSize);
@@ -251,6 +251,9 @@ static float IsMoreOrLessRectange(PuzzelRectange* candidate)
 	Point2f v4 = GetNormalizedVector(candidate->lower, candidate->left);
 
 	double rectangularityMeasure = decide(v1, v2) * decide(v2, v3) * decide(v3, v4) * decide(v4, v1);
+	rectangularityMeasure *= rectangularityMeasure;
+	rectangularityMeasure *= rectangularityMeasure;
+
 	candidate->recScore = rectangularityMeasure;
 
 	if (rectangularityMeasure > 0.1)
@@ -387,6 +390,10 @@ PuzzelRectange* IntrestingArea::FindBestRectange(vector<Point2f>& corners, Backg
 						{
 							delete candidate;
 						}
+					}
+					else
+					{
+						delete candidate;
 					}
 				}
 			}

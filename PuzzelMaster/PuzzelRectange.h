@@ -45,6 +45,7 @@ public:
 	bool isPointInside(int x, int y);
 	Mat background;
 	float computeBackgroundSimilarity(Vec3f circle, bool isinside);
+	Vec3i TuneJointPosition(Vec3f circle, bool shouldBeInside);
 	float scoreCircle(Vec3f circle);
 	float scoreArea(BackgroundSeparator* separator);
 	BackgroundSeparator* backgroundSeparator;
@@ -56,6 +57,7 @@ public:
 	void ComputeEdgeFeatures();
 	void FindNeighbour(vector<PuzzelRectange*>& puzzels, int edgeNr, string name);
 	void FindBestCircleJoin(vector<Vec3f>& circles, vector<Vec3f>& circles2, Point2f c1, Point2f c2, edgeFeature* e);
+	Vec3i TuneJoint(Vec3i origin);
 	float FindCircleJointCandidates(std::vector<cv::Vec3f>& circles, cv::Point2f& c1, cv::Point2f& c2, float& bestScore, cv::Vec3i& candidate, edgeFeature* e, int offset);
 	vector<Vec3f> FindJointCandidates(Mat& puzzelArea, int circleTreshold);
 

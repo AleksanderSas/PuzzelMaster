@@ -255,8 +255,8 @@ void PuzzelRectange::FindNeighbour(vector<PuzzelRectange*> &puzzels, int edgeNr,
 	double bestSecond = DBL_MAX;
 	int sideNr = 0;
 	int sideNrSecond;
-	PuzzelRectange* bestP = NULL;
-	PuzzelRectange* bestPSecond = NULL;
+	PuzzelRectange* bestP = nullptr;
+	PuzzelRectange* bestPSecond = nullptr;
 
 	unsigned int colorIdx = rng.next() % 16;
 	unsigned char* c = Utils::GetColorFromTable(colorIdx);
@@ -275,7 +275,7 @@ void PuzzelRectange::FindNeighbour(vector<PuzzelRectange*> &puzzels, int edgeNr,
 					continue;
 
 				char buffer[255];
-				sprintf_s(buffer, "edge [%d:%d]  : %g  =  %g  +  %d\n", puzzel->id, i, r, score.first, score.second);
+				sprintf_s(buffer, "edge [%d:%d]  : %g  =  %g  +  %d\n", puzzel->intrestingAreaId, i, r, score.first, score.second);
 				Utils::WriteColoredText(string(buffer), colorIdx);
 
 				if (r < best)
@@ -297,16 +297,22 @@ void PuzzelRectange::FindNeighbour(vector<PuzzelRectange*> &puzzels, int edgeNr,
 			}
 		}
 	}
+	if (bestP != nullptr)
+	{
+		Utils::WriteColoredText("best score  [" + to_string(bestP->intrestingAreaId) + ":" + to_string(sideNr) + "]  : " + to_string(best) + "\n", colorIdx);
+		drawMarker(puzzelArea, LinearComb(edgeFeatures[edgeNr].start, edgeFeatures[edgeNr].end, 0.5), color, 0, 20, 3);
+		drawMarker(bestP->puzzelArea, LinearComb(bestP->edgeFeatures[sideNr].start, bestP->edgeFeatures[sideNr].end, 0.5), color, 0, 20, 3);
+		//imshow(name, bestP->puzzelArea);
+	}
+	else
+	{
+		cout << endl << "No match found" << endl;
+	}
 
-	Utils::WriteColoredText("best score  [" + to_string(bestP->id) + ":"+ to_string(sideNr) + "]  : " + to_string(best) + "\n", colorIdx);
-
-	drawMarker(puzzelArea, LinearComb(edgeFeatures[edgeNr].start, edgeFeatures[edgeNr].end, 0.5), color, 0, 20, 3);
-	drawMarker(bestP->puzzelArea, LinearComb(bestP->edgeFeatures[sideNr].start, bestP->edgeFeatures[sideNr].end, 0.5), color, 0, 20, 3);
-	//imshow(name, bestP->puzzelArea);
 	if (bestPSecond != nullptr)
 	{
 		drawMarker(bestPSecond->puzzelArea, LinearComb(bestPSecond->edgeFeatures[sideNrSecond].start, bestPSecond->edgeFeatures[sideNrSecond].end, 0.5), color, 0, 15, 2);
-		Utils::WriteColoredText("second score [" + to_string(bestPSecond->id) + ":" + to_string(sideNrSecond) + "] : " + to_string(bestSecond) + "\n", colorIdx);
+		Utils::WriteColoredText("second score [" + to_string(bestPSecond->intrestingAreaId) + ":" + to_string(sideNrSecond) + "] : " + to_string(bestSecond) + "\n", colorIdx);
 		//imshow(name + "_second", bestPSecond->puzzelArea);
 	}
 	else
@@ -346,6 +352,52 @@ static vector<Point>* FindClosestContour(vector<vector<Point>*> contours, Point 
 static int distSign(Vec3f &line, int x, int y)
 {
 	return line[0] * x + line[1] * y + line[2];
+}
+
+Vec3i PuzzelRectange::TuneJointPosition(Vec3f circle, bool shouldBeInside)
+{
+	int circleX = circle[0];
+	int circleY = circle[1];
+	int circleR = circle[2];
+	int circleR_2 = circleR * circleR * 2; //take a bit bigger area
+	int AccX = 0;
+	int AccY = 0;
+	int count = 0;
+
+	int yStart = circleY - circleR;
+	int yStop = MIN(circleY + circleR, puzzelArea.rows);
+	for (int y = MAX(0, yStart); y < yStop; y++)
+	{
+		int xStart = circleX - circleR;
+		int xStop = MIN(circleX + circleR, puzzelArea.cols);
+		for (int x = MAX(0, xStart); x < xStop; x++)
+		{
+			int dx = x - circleX;
+			int dy = y - circleY;
+			bool _isPointInside = isPointInside(x, y);
+			if (dx * dx + dy * dy <= circleR_2)
+			{
+				if (shouldBeInside && _isPointInside || !shouldBeInside && !_isPointInside)
+				{
+					Vec3b pixel = puzzelArea.at<Vec3b>(y, x);
+					float tmp = shouldBeInside ? isBackground(pixel) : isNotBackground(pixel);
+					if (!isnan(tmp) && !(tmp > 0.5 ^ shouldBeInside))
+					{
+						/*count++;
+						score += tmp;*/
+
+						AccX += x;
+						AccY += y;
+						count++;
+					}
+				}
+			}
+		}
+	}
+	if (count == 0)
+		return Vec3i(circleX, circleY, circleR);
+
+	return Vec3i(AccX / count, AccY / count, circleR);
 }
 
 float PuzzelRectange::computeBackgroundSimilarity(Vec3f circle, bool shouldBeInside)
@@ -431,6 +483,15 @@ static void SelectCirclesAlignedToEdge(vector<Vec3f>& circles, Point2f c1, Point
 	}
 }
 
+/// <summary>
+/// Tune joint position by computing center of the circle with respect to the background
+/// </summary>
+Vec3i PuzzelRectange::TuneJoint(Vec3i origin)
+{
+	bool isInside = isPointInside(origin[0], origin[1]);
+	return TuneJointPosition(origin, isInside);
+}
+
 void PuzzelRectange::FindBestCircleJoin(vector<Vec3f>& circles, vector<Vec3f>& circles2, Point2f c1, Point2f c2, edgeFeature* e)
 {
 	Vec3i candidate;
@@ -440,6 +501,10 @@ void PuzzelRectange::FindBestCircleJoin(vector<Vec3f>& circles, vector<Vec3f>& c
 	float bestCircleScore = MAX(bestCircleScore1, bestCircleScore2);
 	e->hasJoint = bestCircleScore > 0.275;
 	hasBoundaryEdge |= !e->hasJoint;
+
+#if TUNE_JOINTS
+	candidate = TuneJoint(candidate);
+#endif
 
 	cout << endl;
 
