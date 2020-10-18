@@ -7,16 +7,17 @@ public:
 	Token();
 	~Token();
 
-	//edge idx of left edge
-	int pozzelRotation;
-	unsigned int score;
+	shared_ptr<Token> previous;
 	double leftScore;
 	double upperScore;
-	int row;
 	PuzzelRectange* puzzel;
 	Token* left;
 	Token* upper;
-	shared_ptr<Token> previous;
+
+	//edge idx of left edge
+	int pozzelRotation;
+	unsigned int score;
+	int row;
 
 	static int counter;
 };

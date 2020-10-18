@@ -131,13 +131,15 @@ vector<PuzzelRectange*> PuzzelDetector::AddPuzzelsToList(std::vector<IntrestingA
 		PuzzelRectange* puzzel1 = nullptr;
 		PuzzelRectange* puzzel3 = nullptr;
 		std::thread t1(&IntrestingArea::findPuzzel2, it._Ptr, separator, idSequence, MIN_PUZZEL_SIZE, &puzzel1);
+		it++;
 		std::thread* t2 = nullptr;
-		if (++it != puzzelAreas.end())
+		if (it != puzzelAreas.end())
 		{
 			idSequence += 5000000;
 			t2 = new std::thread(&IntrestingArea::findPuzzel2, it._Ptr, separator, idSequence, MIN_PUZZEL_SIZE, &puzzel3);
+			it++;
 		}
-		if (++it != puzzelAreas.end())
+		if (it != puzzelAreas.end())
 		{
 			idSequence += 5000000;
 			PuzzelRectange* puzzel2 = it->findPuzzel(separator, idSequence, MIN_PUZZEL_SIZE);
